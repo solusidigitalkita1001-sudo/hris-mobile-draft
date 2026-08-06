@@ -93,12 +93,12 @@ class AppTheme {
       type: BottomNavigationBarType.fixed,
       elevation: 8,
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: AppColors.lightSurface,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.lightBorder, width: 1),
+        side: BorderSide(color: AppColors.lightBorder, width: 1),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
@@ -159,12 +159,12 @@ class AppTheme {
       type: BottomNavigationBarType.fixed,
       elevation: 0,
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: AppColors.darkCard,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.darkBorder, width: 1),
+        side: BorderSide(color: AppColors.darkBorder, width: 1),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(

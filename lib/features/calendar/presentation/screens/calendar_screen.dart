@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
-import '../widgets/common.dart';
+
+import 'package:hrm_app/core/theme/app_theme.dart';
+import 'package:hrm_app/core/widgets/common.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -16,7 +17,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   // Event data for June 2025
   final Map<int, List<_CalEvent>> _events = {
-    5:  [_CalEvent('Public Holiday — Eid Al-Adha', AppColors.danger)],
+    5: [_CalEvent('Public Holiday — Eid Al-Adha', AppColors.danger)],
     10: [_CalEvent('Dewi — Annual Leave', AppColors.primary)],
     11: [_CalEvent('Dewi — Annual Leave', AppColors.primary)],
     15: [_CalEvent('Team Offsite (Engineering)', AppColors.purple)],
@@ -33,8 +34,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   String get _monthName {
     const names = [
-      '', 'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      '',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return names[_displayMonth];
   }
@@ -71,7 +83,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
             color: textPrimary,
           ),
         ),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        backgroundColor: isDark
+            ? AppColors.darkSurface
+            : AppColors.lightSurface,
         actions: [
           TextButton(
             onPressed: () => setState(() {
@@ -79,9 +93,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
               _displayMonth = 6;
               _displayYear = 2025;
             }),
-            child: const Text('Today',
-                style: TextStyle(
-                    color: AppColors.primary, fontWeight: FontWeight.w600)),
+            child: const Text(
+              'Today',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -135,19 +153,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 // Day-of-week headers
                 Row(
                   children: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-                      .map((d) => Expanded(
-                            child: Center(
-                              child: Text(
-                                d,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.3,
-                                  color: textSub,
-                                ),
+                      .map(
+                        (d) => Expanded(
+                          child: Center(
+                            child: Text(
+                              d,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
+                                color: textSub,
                               ),
                             ),
-                          ))
+                          ),
+                        ),
+                      )
                       .toList(),
                 ),
 
@@ -200,62 +220,75 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 32),
                       child: Column(
                         children: [
-                          Icon(Icons.event_available_rounded,
-                              size: 44, color: textSub.withOpacity(0.3)),
+                          Icon(
+                            Icons.event_available_rounded,
+                            size: 44,
+                            color: textSub.withValues(alpha: 0.3),
+                          ),
                           const SizedBox(height: 12),
-                          Text('Clear day',
-                              style: TextStyle(
-                                  color: textSub.withOpacity(0.6),
-                                  fontSize: 14)),
+                          Text(
+                            'Clear day',
+                            style: TextStyle(
+                              color: textSub.withValues(alpha: 0.6),
+                              fontSize: 14,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                   )
                 else
-                  ...selectedEvents.map((e) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: borderColor),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 4,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: e.color,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  e.label,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: textPrimary,
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: e.color.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(Icons.chevron_right,
-                                    size: 16, color: e.color),
-                              ),
-                            ],
-                          ),
+                  ...selectedEvents.map(
+                    (e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: borderColor),
                         ),
-                      )),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 4,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: e.color,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                e.label,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: textPrimary,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: e.color.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.chevron_right,
+                                size: 16,
+                                color: e.color,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
 
                 const SizedBox(height: 16),
                 SectionHeader(
@@ -268,56 +301,58 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   (25, 'Payroll Disbursement', AppColors.success),
                   (27, 'Q2 Performance Review', AppColors.warning),
                   (30, 'Month-End HR Reports Due', AppColors.info),
-                ].map((ev) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: AppCard(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: ev.$3.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    '${ev.$1}',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w800,
-                                      color: ev.$3,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Jun',
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w600,
-                                      color: ev.$3,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                ].map(
+                  (ev) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: AppCard(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: ev.$3.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                ev.$2,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: textPrimary,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  '${ev.$1}',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: ev.$3,
+                                  ),
                                 ),
+                                Text(
+                                  'Jun',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w600,
+                                    color: ev.$3,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              ev.$2,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: textPrimary,
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ))),
+                    ),
+                  ),
+                )),
               ],
             ),
           ),
@@ -327,7 +362,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildGrid(
-      bool isDark, Color textPrimary, Color textSub, Color borderColor) {
+    bool isDark,
+    Color textPrimary,
+    Color textSub,
+    Color borderColor,
+  ) {
     final totalCells = _firstWeekday + _daysInMonth;
     final rows = (totalCells / 7).ceil();
 
@@ -345,7 +384,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
             return Expanded(
               child: GestureDetector(
-                onTap: isValid ? () => setState(() => _selectedDay = day) : null,
+                onTap: isValid
+                    ? () => setState(() => _selectedDay = day)
+                    : null,
                 child: Container(
                   margin: const EdgeInsets.all(2),
                   height: 40,
@@ -353,8 +394,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     color: isSelected
                         ? AppColors.primary
                         : isToday
-                            ? AppColors.primary.withOpacity(0.12)
-                            : Colors.transparent,
+                        ? AppColors.primary.withValues(alpha: 0.12)
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Column(
@@ -371,10 +412,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             color: isSelected
                                 ? Colors.white
                                 : isWeekend
-                                    ? (isDark
-                                        ? AppColors.darkTextSub
-                                        : AppColors.lightTextSub)
-                                    : textPrimary,
+                                ? (isDark
+                                      ? AppColors.darkTextSub
+                                      : AppColors.lightTextSub)
+                                : textPrimary,
                           ),
                         ),
                       if (isValid && hasEvents)

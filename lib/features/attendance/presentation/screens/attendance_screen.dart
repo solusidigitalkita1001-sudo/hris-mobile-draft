@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../models/data.dart';
-import '../theme/app_theme.dart';
-import '../widgets/common.dart';
+
+import 'package:hrm_app/core/theme/app_theme.dart';
+import 'package:hrm_app/core/widgets/common.dart';
+import 'package:hrm_app/features/dashboard/data/models/app_data.dart';
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
@@ -14,7 +15,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
     with SingleTickerProviderStateMixin {
   bool _clockedIn = true;
   bool _selfieVerified = true;
-  bool _gpsVerified = true;
+  final bool _gpsVerified = true;
   late TabController _tabController;
 
   @override
@@ -49,15 +50,23 @@ class _AttendanceScreenState extends State<AttendanceScreen>
             color: textPrimary,
           ),
         ),
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        backgroundColor: isDark
+            ? AppColors.darkSurface
+            : AppColors.lightSurface,
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppColors.primary,
           unselectedLabelColor: textSub,
           indicatorColor: AppColors.primary,
           indicatorWeight: 2,
-          labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-          tabs: const [Tab(text: 'Check In/Out'), Tab(text: 'History')],
+          labelStyle: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+          tabs: const [
+            Tab(text: 'Check In/Out'),
+            Tab(text: 'History'),
+          ],
         ),
       ),
       body: TabBarView(
@@ -107,7 +116,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primary.withOpacity(0.35),
+                            color: AppColors.primary.withValues(alpha: 0.35),
                             blurRadius: 16,
                             spreadRadius: 4,
                           ),
@@ -122,13 +131,15 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                     const SizedBox(height: 10),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 6),
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: isDark ? AppColors.darkCard : Colors.white,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
+                            color: Colors.black.withValues(alpha: 0.08),
                             blurRadius: 8,
                           ),
                         ],
@@ -150,7 +161,9 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                 right: 12,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 5),
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.success,
                     borderRadius: BorderRadius.circular(20),
@@ -220,9 +233,19 @@ class _AttendanceScreenState extends State<AttendanceScreen>
           ),
           child: Row(
             children: [
-              _TodayStat(label: 'Clock In', value: '08:02', color: AppColors.success, isDark: isDark),
+              _TodayStat(
+                label: 'Clock In',
+                value: '08:02',
+                color: AppColors.success,
+                isDark: isDark,
+              ),
               Container(width: 1, height: 40, color: borderColor),
-              _TodayStat(label: 'Duration', value: '8h 34m', color: AppColors.primary, isDark: isDark),
+              _TodayStat(
+                label: 'Duration',
+                value: '8h 34m',
+                color: AppColors.primary,
+                isDark: isDark,
+              ),
               Container(width: 1, height: 40, color: borderColor),
               _TodayStat(
                 label: 'Status',
@@ -249,7 +272,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
               boxShadow: [
                 BoxShadow(
                   color: (_clockedIn ? AppColors.danger : AppColors.success)
-                      .withOpacity(0.35),
+                      .withValues(alpha: 0.35),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -259,9 +282,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  _clockedIn
-                      ? Icons.logout_rounded
-                      : Icons.login_rounded,
+                  _clockedIn ? Icons.logout_rounded : Icons.login_rounded,
                   color: Colors.white,
                   size: 20,
                 ),
@@ -355,14 +376,16 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                     child: Row(
                       children: [
                         Container(
                           width: 36,
                           height: 36,
                           decoration: BoxDecoration(
-                            color: _statusColor(r.status).withOpacity(0.1),
+                            color: _statusColor(r.status).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
@@ -389,10 +412,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                                 r.clockIn == '—'
                                     ? 'No record'
                                     : '${r.clockIn} → ${r.clockOut}  ·  ${r.hours}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: textSub,
-                                ),
+                                style: TextStyle(fontSize: 12, color: textSub),
                               ),
                             ],
                           ),
@@ -429,19 +449,27 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
   Color _statusColor(AttendanceStatus s) {
     switch (s) {
-      case AttendanceStatus.onTime: return AppColors.success;
-      case AttendanceStatus.late:   return AppColors.warning;
-      case AttendanceStatus.absent: return AppColors.danger;
-      case AttendanceStatus.leave:  return AppColors.info;
+      case AttendanceStatus.onTime:
+        return AppColors.success;
+      case AttendanceStatus.late:
+        return AppColors.warning;
+      case AttendanceStatus.absent:
+        return AppColors.danger;
+      case AttendanceStatus.leave:
+        return AppColors.info;
     }
   }
 
   IconData _statusIcon(AttendanceStatus s) {
     switch (s) {
-      case AttendanceStatus.onTime: return Icons.check_circle_rounded;
-      case AttendanceStatus.late:   return Icons.access_time_rounded;
-      case AttendanceStatus.absent: return Icons.cancel_rounded;
-      case AttendanceStatus.leave:  return Icons.beach_access_rounded;
+      case AttendanceStatus.onTime:
+        return Icons.check_circle_rounded;
+      case AttendanceStatus.late:
+        return Icons.access_time_rounded;
+      case AttendanceStatus.absent:
+        return Icons.cancel_rounded;
+      case AttendanceStatus.leave:
+        return Icons.beach_access_rounded;
     }
   }
 }
@@ -479,8 +507,8 @@ class _VerificationRow extends StatelessWidget {
             height: 38,
             decoration: BoxDecoration(
               color: verified
-                  ? AppColors.success.withOpacity(0.1)
-                  : AppColors.danger.withOpacity(0.1),
+                  ? AppColors.success.withValues(alpha: 0.1)
+                  : AppColors.danger.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
@@ -494,13 +522,15 @@ class _VerificationRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: textPrimary)),
-                Text(sub,
-                    style: TextStyle(fontSize: 11, color: textSub)),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: textPrimary,
+                  ),
+                ),
+                Text(sub, style: TextStyle(fontSize: 11, color: textSub)),
               ],
             ),
           ),
@@ -572,10 +602,14 @@ class _DayStrip extends StatelessWidget {
 
   Color get _statusColor {
     switch (status) {
-      case AttendanceStatus.onTime: return AppColors.success;
-      case AttendanceStatus.late:   return AppColors.warning;
-      case AttendanceStatus.absent: return AppColors.danger;
-      case AttendanceStatus.leave:  return AppColors.info;
+      case AttendanceStatus.onTime:
+        return AppColors.success;
+      case AttendanceStatus.late:
+        return AppColors.warning;
+      case AttendanceStatus.absent:
+        return AppColors.danger;
+      case AttendanceStatus.leave:
+        return AppColors.info;
     }
   }
 
@@ -603,7 +637,7 @@ class _DayStrip extends StatelessWidget {
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: isToday
-                  ? Colors.white.withOpacity(0.8)
+                  ? Colors.white.withValues(alpha: 0.8)
                   : (isDark ? AppColors.darkTextSub : AppColors.lightTextSub),
             ),
           ),
@@ -641,7 +675,7 @@ class _MapGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = (isDark ? Colors.white : Colors.black).withOpacity(0.04)
+      ..color = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.04)
       ..strokeWidth = 1;
     const spacing = 30.0;
     for (double x = 0; x < size.width; x += spacing) {
@@ -652,10 +686,18 @@ class _MapGridPainter extends CustomPainter {
     }
     // A few thicker "road" lines
     final roadPaint = Paint()
-      ..color = (isDark ? Colors.white : AppColors.primary).withOpacity(0.08)
+      ..color = (isDark ? Colors.white : AppColors.primary).withValues(alpha: 0.08)
       ..strokeWidth = 6;
-    canvas.drawLine(Offset(size.width * 0.3, 0), Offset(size.width * 0.3, size.height), roadPaint);
-    canvas.drawLine(Offset(0, size.height * 0.5), Offset(size.width, size.height * 0.5), roadPaint);
+    canvas.drawLine(
+      Offset(size.width * 0.3, 0),
+      Offset(size.width * 0.3, size.height),
+      roadPaint,
+    );
+    canvas.drawLine(
+      Offset(0, size.height * 0.5),
+      Offset(size.width, size.height * 0.5),
+      roadPaint,
+    );
   }
 
   @override

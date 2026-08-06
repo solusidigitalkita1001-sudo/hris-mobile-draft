@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../models/data.dart';
-import '../theme/app_theme.dart';
-import '../widgets/common.dart';
+
+import 'package:hrm_app/core/theme/app_theme.dart';
+import 'package:hrm_app/core/widgets/common.dart';
+import 'package:hrm_app/features/dashboard/data/models/app_data.dart';
 
 class ProfileScreen extends StatelessWidget {
   final VoidCallback onThemeToggle;
@@ -56,8 +57,11 @@ class ProfileScreen extends StatelessWidget {
                             width: 2,
                           ),
                         ),
-                        child: const Icon(Icons.edit,
-                            size: 12, color: Colors.white),
+                        child: const Icon(
+                          Icons.edit,
+                          size: 12,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -72,19 +76,19 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  emp.role,
-                  style: TextStyle(fontSize: 14, color: textSub),
-                ),
+                Text(emp.role, style: TextStyle(fontSize: 14, color: textSub)),
                 const SizedBox(height: 4),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.1),
+                    color: AppColors.success.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                        color: AppColors.success.withOpacity(0.2)),
+                      color: AppColors.success.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
@@ -282,14 +286,16 @@ class ProfileScreen extends StatelessWidget {
                       // Dark mode toggle
                       Padding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                         child: Row(
                           children: [
                             Container(
                               width: 36,
                               height: 36,
                               decoration: BoxDecoration(
-                                color: AppColors.purple.withOpacity(0.1),
+                                color: AppColors.purple.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Icon(
@@ -303,15 +309,22 @@ class ProfileScreen extends StatelessWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Dark Mode',
-                                      style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: textPrimary)),
                                   Text(
-                                    isDarkMode ? 'Dark theme active' : 'Light theme active',
+                                    'Dark Mode',
                                     style: TextStyle(
-                                        fontSize: 12, color: textSub),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: textPrimary,
+                                    ),
+                                  ),
+                                  Text(
+                                    isDarkMode
+                                        ? 'Dark theme active'
+                                        : 'Light theme active',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: textSub,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -319,7 +332,7 @@ class ProfileScreen extends StatelessWidget {
                             Switch(
                               value: isDarkMode,
                               onChanged: (_) => onThemeToggle(),
-                              activeColor: AppColors.primary,
+                              activeThumbColor: AppColors.primary,
                             ),
                           ],
                         ),
@@ -355,17 +368,24 @@ class ProfileScreen extends StatelessWidget {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: () {},
-                    icon: const Icon(Icons.logout_rounded,
-                        size: 18, color: AppColors.danger),
-                    label: const Text('Sign Out',
-                        style: TextStyle(
-                            color: AppColors.danger,
-                            fontWeight: FontWeight.w600)),
+                    icon: const Icon(
+                      Icons.logout_rounded,
+                      size: 18,
+                      color: AppColors.danger,
+                    ),
+                    label: const Text(
+                      'Sign Out',
+                      style: TextStyle(
+                        color: AppColors.danger,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       side: const BorderSide(color: AppColors.danger, width: 1),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                   ),
                 ),
@@ -374,7 +394,7 @@ class ProfileScreen extends StatelessWidget {
 
                 Center(
                   child: Text(
-                    'ACME HRMS v1.0.0  ·  © 2025 ACME Corp',
+                    'HRMS v1.0.0  ·  © 2025 Corp',
                     style: TextStyle(fontSize: 11, color: textSub),
                   ),
                 ),
@@ -434,8 +454,11 @@ class _InfoChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 13,
-                color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub),
+            Icon(
+              icon,
+              size: 13,
+              color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
+            ),
             const SizedBox(width: 5),
             Flexible(
               child: Text(
@@ -484,13 +507,18 @@ class _InfoRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              Icon(icon, size: 16,
-                  color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub),
+              Icon(
+                icon,
+                size: 16,
+                color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
+              ),
               const SizedBox(width: 10),
               SizedBox(
                 width: 72,
-                child: Text(label,
-                    style: TextStyle(fontSize: 13, color: textSub)),
+                child: Text(
+                  label,
+                  style: TextStyle(fontSize: 13, color: textSub),
+                ),
               ),
               Expanded(
                 child: Text(
@@ -541,15 +569,14 @@ class _MenuRow extends StatelessWidget {
         InkWell(
           onTap: () {},
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
                 Container(
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.1),
+                    color: iconColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(icon, size: 18, color: iconColor),
@@ -559,14 +586,15 @@ class _MenuRow extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(label,
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: textPrimary)),
-                      Text(sub,
-                          style:
-                              TextStyle(fontSize: 12, color: textSub)),
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: textPrimary,
+                        ),
+                      ),
+                      Text(sub, style: TextStyle(fontSize: 12, color: textSub)),
                     ],
                   ),
                 ),

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../models/data.dart';
-import '../theme/app_theme.dart';
-import '../widgets/common.dart';
+
+import 'package:hrm_app/core/theme/app_theme.dart';
+import 'package:hrm_app/core/widgets/common.dart';
+import 'package:hrm_app/features/dashboard/data/models/app_data.dart';
 
 class RequestsScreen extends StatefulWidget {
   const RequestsScreen({super.key});
@@ -42,24 +43,30 @@ class _RequestsScreenState extends State<RequestsScreen>
             color: textPrimary,
           ),
         ),
-        backgroundColor:
-            isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        backgroundColor: isDark
+            ? AppColors.darkSurface
+            : AppColors.lightSurface,
         actions: [
           IconButton(
-            icon: Icon(Icons.add_rounded,
-                color: isDark ? AppColors.darkText : AppColors.lightText),
+            icon: Icon(
+              Icons.add_rounded,
+              color: isDark ? AppColors.darkText : AppColors.lightText,
+            ),
             onPressed: () => _showNewRequestSheet(context),
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppColors.primary,
-          unselectedLabelColor:
-              isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
+          unselectedLabelColor: isDark
+              ? AppColors.darkTextSub
+              : AppColors.lightTextSub,
           indicatorColor: AppColors.primary,
           indicatorWeight: 2,
-          labelStyle:
-              const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          labelStyle: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
           tabs: const [
             Tab(text: 'All'),
             Tab(text: 'Pending'),
@@ -87,9 +94,7 @@ class _RequestsScreenState extends State<RequestsScreen>
 
     final items = filter == null
         ? AppData.recentRequests
-        : AppData.recentRequests
-            .where((r) => r.status == filter)
-            .toList();
+        : AppData.recentRequests.where((r) => r.status == filter).toList();
 
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -166,27 +171,34 @@ class _RequestsScreenState extends State<RequestsScreen>
               padding: const EdgeInsets.symmetric(vertical: 40),
               child: Column(
                 children: [
-                  Icon(Icons.inbox_rounded, size: 48,
-                      color: textSub.withOpacity(0.4)),
+                  Icon(
+                    Icons.inbox_rounded,
+                    size: 48,
+                    color: textSub.withValues(alpha: 0.4),
+                  ),
                   const SizedBox(height: 12),
-                  Text('No requests',
-                      style: TextStyle(color: textSub, fontSize: 14)),
+                  Text(
+                    'No requests',
+                    style: TextStyle(color: textSub, fontSize: 14),
+                  ),
                 ],
               ),
             ),
           )
         else
-          ...items.map((r) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _RequestCard(
-                  request: r,
-                  isDark: isDark,
-                  textPrimary: textPrimary,
-                  textSub: textSub,
-                  cardColor: cardColor,
-                  borderColor: borderColor,
-                ),
-              )),
+          ...items.map(
+            (r) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _RequestCard(
+                request: r,
+                isDark: isDark,
+                textPrimary: textPrimary,
+                textSub: textSub,
+                cardColor: cardColor,
+                borderColor: borderColor,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -226,7 +238,8 @@ class _RequestTypeCard extends StatelessWidget {
           color: isDark ? AppColors.darkCard : AppColors.lightSurface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-              color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -235,7 +248,7 @@ class _RequestTypeCard extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: color, size: 20),
@@ -276,23 +289,35 @@ class _RequestCard extends StatelessWidget {
 
   IconData get _typeIcon {
     switch (request.type) {
-      case 'Annual Leave':    return Icons.beach_access_rounded;
-      case 'Sick Leave':      return Icons.medical_services_rounded;
-      case 'Overtime Claim':  return Icons.more_time_rounded;
-      case 'WFH Request':     return Icons.home_work_rounded;
-      case 'Business Trip':   return Icons.flight_takeoff_rounded;
-      default:                return Icons.description_rounded;
+      case 'Annual Leave':
+        return Icons.beach_access_rounded;
+      case 'Sick Leave':
+        return Icons.medical_services_rounded;
+      case 'Overtime Claim':
+        return Icons.more_time_rounded;
+      case 'WFH Request':
+        return Icons.home_work_rounded;
+      case 'Business Trip':
+        return Icons.flight_takeoff_rounded;
+      default:
+        return Icons.description_rounded;
     }
   }
 
   Color get _typeColor {
     switch (request.type) {
-      case 'Annual Leave':    return AppColors.primary;
-      case 'Sick Leave':      return AppColors.danger;
-      case 'Overtime Claim':  return AppColors.warning;
-      case 'WFH Request':     return AppColors.success;
-      case 'Business Trip':   return AppColors.purple;
-      default:                return AppColors.info;
+      case 'Annual Leave':
+        return AppColors.primary;
+      case 'Sick Leave':
+        return AppColors.danger;
+      case 'Overtime Claim':
+        return AppColors.warning;
+      case 'WFH Request':
+        return AppColors.success;
+      case 'Business Trip':
+        return AppColors.purple;
+      default:
+        return AppColors.info;
     }
   }
 
@@ -311,7 +336,7 @@ class _RequestCard extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: _typeColor.withOpacity(0.1),
+              color: _typeColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(_typeIcon, color: _typeColor, size: 20),
@@ -339,7 +364,7 @@ class _RequestCard extends StatelessWidget {
                   'Submitted ${request.submittedOn}',
                   style: TextStyle(
                     fontSize: 11,
-                    color: textSub.withOpacity(0.7),
+                    color: textSub.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -363,8 +388,13 @@ class _NewRequestSheet extends StatefulWidget {
 class _NewRequestSheetState extends State<_NewRequestSheet> {
   String _selectedType = 'Annual Leave';
   final List<String> _types = [
-    'Annual Leave', 'Sick Leave', 'Personal Leave',
-    'Overtime', 'WFH Request', 'Business Trip', 'Attendance Correction',
+    'Annual Leave',
+    'Sick Leave',
+    'Personal Leave',
+    'Overtime',
+    'WFH Request',
+    'Business Trip',
+    'Attendance Correction',
   ];
 
   @override
@@ -376,7 +406,11 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
 
     return Container(
       padding: EdgeInsets.fromLTRB(
-          20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+        20,
+        20,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
       decoration: BoxDecoration(
         color: sheetColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -396,57 +430,73 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
             ),
           ),
           const SizedBox(height: 20),
-          Text('New Request',
-              style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: textPrimary)),
+          Text(
+            'New Request',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: textPrimary,
+            ),
+          ),
           const SizedBox(height: 16),
-          Text('Request Type',
-              style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: textSub)),
+          Text(
+            'Request Type',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: textSub,
+            ),
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: _types
-                .map((t) => GestureDetector(
-                      onTap: () => setState(() => _selectedType = t),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
+                .map(
+                  (t) => GestureDetector(
+                    onTap: () => setState(() => _selectedType = t),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _selectedType == t
+                            ? AppColors.primary
+                            : (isDark
+                                  ? AppColors.darkBg
+                                  : AppColors.lightMuted),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
                           color: _selectedType == t
                               ? AppColors.primary
                               : (isDark
-                                  ? AppColors.darkBg
-                                  : AppColors.lightMuted),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                              color: _selectedType == t
-                                  ? AppColors.primary
-                                  : (isDark
-                                      ? AppColors.darkBorder
-                                      : AppColors.lightBorder)),
-                        ),
-                        child: Text(
-                          t,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: _selectedType == t ? Colors.white : textSub,
-                          ),
+                                    ? AppColors.darkBorder
+                                    : AppColors.lightBorder),
                         ),
                       ),
-                    ))
+                      child: Text(
+                        t,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: _selectedType == t ? Colors.white : textSub,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
                 .toList(),
           ),
           const SizedBox(height: 20),
-          Text('Date Range',
-              style: TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w600, color: textSub)),
+          Text(
+            'Date Range',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: textSub,
+            ),
+          ),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -454,13 +504,18 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
               color: isDark ? AppColors.darkBg : AppColors.lightMuted,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+              ),
             ),
             child: Row(
               children: [
-                Icon(Icons.calendar_month_rounded,
-                    size: 18,
-                    color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub),
+                Icon(
+                  Icons.calendar_month_rounded,
+                  size: 18,
+                  color: isDark
+                      ? AppColors.darkTextSub
+                      : AppColors.lightTextSub,
+                ),
                 const SizedBox(width: 10),
                 Text(
                   'Select date range',
@@ -470,9 +525,14 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
             ),
           ),
           const SizedBox(height: 14),
-          Text('Reason (optional)',
-              style: TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w600, color: textSub)),
+          Text(
+            'Reason (optional)',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: textSub,
+            ),
+          ),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -480,7 +540,8 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
               color: isDark ? AppColors.darkBg : AppColors.lightMuted,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+              ),
             ),
             child: TextField(
               maxLines: 3,
@@ -501,11 +562,14 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 elevation: 0,
               ),
-              child: const Text('Submit Request',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              child: const Text(
+                'Submit Request',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              ),
             ),
           ),
         ],

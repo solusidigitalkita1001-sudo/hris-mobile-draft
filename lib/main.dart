@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'theme/app_theme.dart';
-import 'screens/home_screen.dart';
-import 'screens/attendance_screen.dart';
-import 'screens/requests_screen.dart';
-import 'screens/calendar_screen.dart';
-import 'screens/profile_screen.dart';
+import 'package:hrm_app/core/theme/app_theme.dart';
+import 'package:hrm_app/features/attendance/presentation/screens/attendance_screen.dart';
+import 'package:hrm_app/features/calendar/presentation/screens/calendar_screen.dart';
+import 'package:hrm_app/features/dashboard/presentation/screens/home_screen.dart';
+import 'package:hrm_app/features/profile/presentation/screens/profile_screen.dart';
+import 'package:hrm_app/features/self_service/presentation/screens/requests_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,40 +15,38 @@ void main() {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  runApp(const AcmeHrmsApp());
+  runApp(const ProviderScope(child: HrmsApp()));
 }
 
 // ─── Theme State ─────────────────────────────────────────────────────────────
 
-class AcmeHrmsApp extends StatefulWidget {
-  const AcmeHrmsApp({super.key});
+class HrmsApp extends StatefulWidget {
+  const HrmsApp({super.key});
 
   @override
-  State<AcmeHrmsApp> createState() => _AcmeHrmsAppState();
+  State<HrmsApp> createState() => _HrmsAppState();
 }
 
-class _AcmeHrmsAppState extends State<AcmeHrmsApp> {
+class _HrmsAppState extends State<HrmsApp> {
   ThemeMode _themeMode = ThemeMode.light;
 
   void _toggleTheme() {
     setState(() {
-      _themeMode =
-          _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+      _themeMode = _themeMode == ThemeMode.light
+          ? ThemeMode.dark
+          : ThemeMode.light;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ACME HRMS',
+      title: 'HRMS',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: _themeMode,
-      home: MainShell(
-        themeMode: _themeMode,
-        onThemeToggle: _toggleTheme,
-      ),
+      home: MainShell(themeMode: _themeMode, onThemeToggle: _toggleTheme),
     );
   }
 }
@@ -72,11 +71,31 @@ class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
 
   static const List<_NavItem> _navItems = [
-    _NavItem(icon: Icons.home_rounded,        activeIcon: Icons.home_rounded,             label: 'Home'),
-    _NavItem(icon: Icons.access_time_outlined, activeIcon: Icons.access_time_filled_rounded, label: 'Attendance'),
-    _NavItem(icon: Icons.send_outlined,        activeIcon: Icons.send_rounded,              label: 'Requests'),
-    _NavItem(icon: Icons.calendar_month_outlined, activeIcon: Icons.calendar_month_rounded, label: 'Calendar'),
-    _NavItem(icon: Icons.person_outline_rounded,  activeIcon: Icons.person_rounded,         label: 'Profile'),
+    _NavItem(
+      icon: Icons.home_rounded,
+      activeIcon: Icons.home_rounded,
+      label: 'Home',
+    ),
+    _NavItem(
+      icon: Icons.access_time_outlined,
+      activeIcon: Icons.access_time_filled_rounded,
+      label: 'Attendance',
+    ),
+    _NavItem(
+      icon: Icons.send_outlined,
+      activeIcon: Icons.send_rounded,
+      label: 'Requests',
+    ),
+    _NavItem(
+      icon: Icons.calendar_month_outlined,
+      activeIcon: Icons.calendar_month_rounded,
+      label: 'Calendar',
+    ),
+    _NavItem(
+      icon: Icons.person_outline_rounded,
+      activeIcon: Icons.person_rounded,
+      label: 'Profile',
+    ),
   ];
 
   @override
@@ -95,10 +114,7 @@ class _MainShellState extends State<MainShell> {
     ];
 
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           border: Border(
@@ -111,8 +127,10 @@ class _MainShellState extends State<MainShell> {
         child: NavigationBar(
           selectedIndex: _currentIndex,
           onDestinationSelected: (i) => setState(() => _currentIndex = i),
-          backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-          indicatorColor: AppColors.primary.withOpacity(0.12),
+          backgroundColor: isDark
+              ? AppColors.darkSurface
+              : AppColors.lightSurface,
+          indicatorColor: AppColors.primary.withValues(alpha: 0.12),
           shadowColor: Colors.transparent,
           elevation: 0,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
@@ -122,7 +140,9 @@ class _MainShellState extends State<MainShell> {
                   icon: Icon(
                     item.icon,
                     size: 22,
-                    color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
+                    color: isDark
+                        ? AppColors.darkTextSub
+                        : AppColors.lightTextSub,
                   ),
                   selectedIcon: Icon(
                     item.activeIcon,

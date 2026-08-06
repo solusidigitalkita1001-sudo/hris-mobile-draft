@@ -214,15 +214,41 @@ Setiap kebutuhan fungsional diberi ID unik dengan format FR-\[Modul\]-\[Nomor\] 
 | FR-AUTH-07 | Pengguna dapat login dari maksimal N perangkat terdaftar; login di perangkat baru mengirim notifikasi keamanan ke perangkat lama.                                                           | Employee, Atasan        | Should        |
 | FR-AUTH-08 | Untuk pengguna dengan akses lintas Company (mis. Group HR terbatas), aplikasi menampilkan pilihan Company aktif secara sederhana saat login, mengikuti klaim company_scope pada token sesi. | Atasan (lintas company) | Could         |
 
-## **6.2 Dashboard / Beranda**
+## **6.2 Dashboard / Beranda (Role-Based Dashboard)**
 
-| **ID**     | **Kebutuhan**                                                                                                               | **Aktor**        | **Prioritas** |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------- | ------------- |
-| FR-DASH-01 | Beranda menampilkan status kehadiran hari ini (belum absen/hadir/terlambat) beserta tombol aksi Clock In/Out yang menonjol. | Employee, Atasan | Must          |
-| FR-DASH-02 | Beranda menampilkan ringkasan saldo cuti tersisa dan jumlah pengajuan yang sedang Pending.                                  | Employee, Atasan | Must          |
-| FR-DASH-03 | Bagi pengguna berperan Atasan, Beranda menampilkan badge jumlah pengajuan bawahan yang menunggu approval.                   | Atasan           | Must          |
-| FR-DASH-04 | Beranda menampilkan pengumuman/broadcast dari HR (mis. pengingat kalender belum dikonfigurasi, hari libur mendatang).       | Employee, Atasan | Should        |
-| FR-DASH-05 | Beranda menampilkan pengingat kontrak/dokumen yang akan berakhir (khusus milik karyawan sendiri).                           | Employee         | Could         |
+Beranda dirancang sebagai satu layar yang sama secara struktural untuk seluruh pengguna, namun konten dan susunan widget-nya menyesuaikan secara dinamis berdasarkan role aktif pengguna (Employee vs Atasan) serta konteks pribadinya (jumlah bawahan, status kehadiran, jenis kontrak, dsb.). Tujuannya agar setiap pengguna langsung melihat informasi paling relevan untuk perannya tanpa perlu menggali menu lain - mempercepat pengambilan keputusan harian.
+
+### **6.2.1 Prinsip Personalisasi Dashboard**
+
+- Widget bersifat modular dan diatur oleh Role Engine di backend: setiap widget memiliki aturan visibilitas (mis. widget 'Approval Menunggu' hanya tampil bila pengguna memiliki ≥1 bawahan langsung aktif).
+- Urutan widget mengikuti prioritas urgensi: aksi yang butuh tindakan segera (belum absen, approval pending) selalu berada di posisi teratas.
+- Dashboard tetap dapat menampilkan kedua konteks bagi pengguna dual-role (Employee sekaligus Atasan) dalam satu layar yang sama, dipisahkan menjadi dua zona: 'Saya' dan 'Tim Saya', tanpa perlu berganti akun/mode.
+
+### **6.2.2 Widget Dashboard - Role Employee**
+
+| **ID**     | **Kebutuhan**                                                                                                                        | **Aktor** | **Prioritas** |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------ | --------- | ------------- |
+| FR-DASH-01 | Widget status kehadiran hari ini (belum absen/hadir/terlambat) beserta tombol aksi Clock In/Out yang menonjol di posisi paling atas. | Employee  | Must          |
+| FR-DASH-02 | Widget ringkasan saldo cuti tersisa per jenis cuti dan jumlah pengajuan pribadi yang sedang Pending.                                 | Employee  | Must          |
+| FR-DASH-03 | Widget shift/jadwal kerja hari ini dan besok, termasuk lokasi/branch penugasan.                                                      | Employee  | Must          |
+| FR-DASH-04 | Widget pengumuman/broadcast dari HR (mis. pengingat kalender belum dikonfigurasi, hari libur mendatang, kebijakan baru).             | Employee  | Should        |
+| FR-DASH-05 | Widget pengingat kontrak/dokumen/sertifikasi yang akan berakhir milik karyawan sendiri.                                              | Employee  | Could         |
+| FR-DASH-06 | Widget ringkasan slip gaji terbaru (nominal net & tautan unduh) setelah periode payroll difinalisasi.                                | Employee  | Could         |
+
+### **6.2.3 Widget Dashboard - Role Atasan/Manager**
+
+Selain seluruh widget Employee di atas (karena Atasan tetap melakukan absensi & pengajuan untuk dirinya sendiri), zona 'Tim Saya' pada dashboard Atasan menambahkan widget berikut:
+
+| **ID**     | **Kebutuhan**                                                                                                                                                                    | **Aktor**               | **Prioritas** |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | ------------- |
+| FR-DASH-07 | Widget badge jumlah pengajuan bawahan yang menunggu approval, dengan quick-access langsung ke Approval Center.                                                                   | Atasan                  | Must          |
+| FR-DASH-08 | Widget ringkasan kehadiran tim hari ini (jumlah hadir/terlambat/belum absen/cuti-izin dari total bawahan aktif).                                                                 | Atasan                  | Must          |
+| FR-DASH-09 | Widget daftar bawahan yang sedang cuti/izin dalam 7 hari ke depan, membantu perencanaan penugasan.                                                                               | Atasan                  | Should        |
+| FR-DASH-10 | Widget indikator konflik jadwal tim (mis. lebih dari N anggota tim cuti bersamaan pada tanggal yang sama).                                                                       | Atasan                  | Could         |
+| FR-DASH-11 | Widget SLA approval - menyoroti pengajuan yang sudah mendekati/melewati batas waktu proses (default 3 hari) agar tidak menumpuk.                                                 | Atasan                  | Should        |
+| FR-DASH-12 | Untuk Atasan dengan span-of-control lintas Company (kasus khusus, lihat Dokumen Alur Sistem §2.4), dashboard menandai dengan jelas asal Company setiap item dalam ringkasan tim. | Atasan (lintas company) | Could         |
+
+_Catatan: Widget FR-DASH-07 s.d. FR-DASH-12 hanya dirender bila sistem mendeteksi pengguna memiliki minimal satu bawahan langsung aktif (role Atasan). Pengguna Employee murni tidak akan melihat zona 'Tim Saya' sama sekali, menjaga dashboard tetap sederhana dan tidak membingungkan._
 
 ## **6.3 Absensi (Attendance)**
 
@@ -330,14 +356,31 @@ Mengacu pada Dokumen Alur Sistem §3.8, kanal Self Service mendukung beberapa ti
 - Waktu buka aplikasi (cold start) tidak lebih dari 3 detik pada perangkat kelas menengah dengan jaringan 4G.
 - Proses Clock In/Out (dari tekan tombol hingga konfirmasi status) selesai dalam waktu maksimal 5 detik pada kondisi jaringan normal.
 - Aplikasi tetap responsif (tidak freeze) saat memuat riwayat data dengan volume besar melalui teknik pagination/lazy loading.
+- Data yang bersifat baca-cepat dan sering diakses (status kehadiran hari ini, saldo cuti, ringkasan dashboard) dilayani dari lapisan cache di backend agar waktu respons tetap konsisten meski jumlah pengguna aktif tinggi pada jam-jam sibuk (lihat detail skema pada Bagian 8).
 
 ## **7.2 Keamanan (Security)**
 
-- Seluruh komunikasi data antara aplikasi dan server menggunakan enkripsi TLS 1.2 ke atas.
-- Token sesi (JWT) disimpan menggunakan secure storage bawaan platform (Keychain di iOS, Keystore di Android), tidak disimpan dalam plain text.
+Prinsip utama keamanan aplikasi adalah defense in depth: setiap request tetap divalidasi secara presisi di sisi server meskipun sudah melewati validasi di sisi aplikasi mobile, karena validasi client-side hanya bertujuan meningkatkan pengalaman pengguna (early feedback) dan tidak pernah menjadi satu-satunya lapisan pertahanan.
+
+### **7.2.1 Lapisan Validasi (Validation Layers)**
+
+| **Lapisan**                                        | **Ketentuan Presisi**                                                                                                                                                                                                                                                                                            |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1\. Validasi Input (Client)                        | Format data (tanggal, nominal, panjang teks, tipe file, ukuran maksimal upload) divalidasi di aplikasi sebelum dikirim, untuk mengurangi request yang pasti gagal - namun tidak dipercaya sebagai validasi final.                                                                                                |
+| 2\. Validasi Input (Server)                        | Seluruh payload divalidasi ulang di server (tipe data, rentang nilai, wajib/tidak wajib, whitelist nilai enum) menggunakan schema validation yang sama persis dengan aturan bisnis, menolak request dengan pesan error yang presisi dan tidak generik.                                                           |
+| 3\. Validasi Otentikasi                            | Setiap request wajib menyertakan token sesi valid (JWT) yang diverifikasi tanda tangan, masa berlaku, dan status blacklist (mis. setelah logout) sebelum diproses lebih lanjut.                                                                                                                                  |
+| 4\. Validasi Otorisasi (RBAC & Row-Level Security) | Setiap request diverifikasi terhadap role dan scope kepemilikan data - mis. Atasan hanya dapat meng-approve pengajuan milik bawahan langsungnya sendiri (dicek terhadap struktur organisasi aktual di database, bukan hanya klaim pada token), konsisten dengan filter company_scope pada PRD §2.4.              |
+| 5\. Validasi Aturan Bisnis (Business Rule)         | Aturan seperti kecukupan saldo cuti, radius geofencing, batas approval berjenjang, dan status pengajuan yang masih dapat diproses (belum Approved/Rejected) diverifikasi ulang di server tepat sebelum transaksi disimpan, untuk mencegah race condition (mis. dua approval bersamaan pada pengajuan yang sama). |
+| 6\. Validasi Idempotensi                           | Aksi kritikal (submit pengajuan, Clock In/Out, approve/reject) menyertakan idempotency key agar pengiriman ulang akibat retry jaringan tidak menghasilkan duplikasi transaksi.                                                                                                                                   |
+| 7\. Rate Limiting & Anomaly Detection              | Permintaan dibatasi per akun/perangkat dalam jendela waktu tertentu untuk mencegah brute-force maupun penyalahgunaan API; pola akses tidak wajar (mis. lokasi absen berpindah drastis dalam waktu singkat) ditandai untuk ditinjau HR.                                                                           |
+
+### **7.2.2 Ketentuan Keamanan Tambahan**
+
+- Seluruh komunikasi data antara aplikasi dan server menggunakan enkripsi TLS 1.2 ke atas; sertifikat divalidasi dengan certificate pinning untuk mencegah man-in-the-middle.
+- Token sesi (JWT) disimpan menggunakan secure storage bawaan platform (Keychain di iOS, Keystore di Android), tidak disimpan dalam plain text, dan memiliki masa berlaku pendek dengan mekanisme refresh token terpisah.
 - Data biometric (jika digunakan untuk face recognition absensi maupun login) tidak disimpan mentah di server; hanya representasi terenkripsi/hash yang digunakan untuk pencocokan.
 - Aplikasi mendukung remote wipe/logout paksa dari sisi admin apabila perangkat karyawan hilang/dicuri.
-- Seluruh aksi kritikal (Clock In/Out, submit pengajuan, approve/reject) tercatat di Audit Log backend sesuai PRD §6.13, termasuk device ID dan lokasi bila relevan.
+- Seluruh aksi kritikal (Clock In/Out, submit pengajuan, approve/reject) tercatat di Audit Log backend sesuai PRD §6.13, termasuk device ID, hasil validasi, dan lokasi bila relevan - sehingga setiap keputusan sistem dapat ditelusuri dan dipertanggungjawabkan.
 
 ## **7.3 Usability & Aksesibilitas**
 
@@ -360,9 +403,52 @@ Mengacu pada Dokumen Alur Sistem §3.8, kanal Self Service mendukung beberapa ti
 - Data pribadi karyawan (lokasi, foto selfie, dokumen) diproses dan disimpan sesuai regulasi perlindungan data pribadi yang berlaku di Indonesia.
 - Retensi data lokasi presensi mengikuti kebijakan retensi Audit Log/data kepegawaian sebagaimana diatur pada PRD §6.13 dan §11.
 
-# **8\. Kebutuhan Integrasi & Dependency**
+# **8\. Arsitektur & Optimasi Kinerja Sistem**
 
-## **8.1 Integrasi dengan Modul Backend HRMS Existing**
+Bagian ini menetapkan kebutuhan arsitektur pendukung tingkat tinggi (high-level) agar aplikasi mobile tetap responsif dan andal pada momen beban puncak - misalnya saat seluruh karyawan melakukan Clock In pada jam masuk kerja yang hampir bersamaan, atau saat notifikasi massal dikirim ke seluruh pengguna. Detail implementasi teknis sepenuhnya menjadi kewenangan Tim Engineering, namun prinsip berikut menjadi kebutuhan bisnis yang wajib dipenuhi demi pengalaman pengguna yang konsisten.
+
+## **8.1 Skema Baca-Tulis: Database sebagai Sumber Kebenaran, Cache untuk Kecepatan Baca**
+
+Pola yang digunakan adalah cache-aside/write-through sederhana: setiap kali terjadi perubahan data (transaksi baru - mis. Clock In/Out, submit pengajuan, approve/reject), sistem selalu menuliskan data tersebut ke database utama terlebih dahulu sebagai satu-satunya sumber kebenaran (source of truth), lalu memperbarui/menghapus (invalidate) entri cache terkait. Untuk permintaan baca (read) yang sering diakses dan jarang berubah dalam rentang waktu singkat - seperti status kehadiran hari ini, saldo cuti, ringkasan dashboard, dan konfigurasi kalender kerja - sistem melayani dari cache in-memory (mis. Redis) tanpa membebani database pada setiap request.
+
+| **Tahapan**                                                                 | **Perilaku Sistem**                                                                                                                                                                                                                        |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Ada perubahan data (write)                                                  | Request disimpan ke database (transaksional, ACID) → setelah berhasil, cache lama untuk entitas terkait di-invalidate/diperbarui → event perubahan dipublikasikan ke message queue untuk diproses lebih lanjut (lihat §8.2).               |
+| Tidak ada perubahan data (read)                                             | Request pertama-tama dicek ke cache; jika ditemukan (cache hit) data langsung dikembalikan tanpa query ke database; jika tidak ditemukan (cache miss) sistem mengambil dari database, lalu menyimpannya ke cache untuk request berikutnya. |
+| Data sensitif/transaksional final (slip gaji terfinalisasi, hasil approval) | Tetap dibaca dari database sebagai rujukan utama begitu status berubah final, dengan cache hanya digunakan sebagai lapisan percepatan tampilan, bukan pengganti data resmi.                                                                |
+
+- Cache diberi waktu kedaluwarsa (TTL) yang wajar per jenis data - mis. status kehadiran harian TTL singkat (hitungan menit), data referensi seperti kalender kerja TTL lebih panjang (hitungan jam).
+- Setiap transaksi yang mengubah data (write) selalu memicu invalidasi cache terkait secara eksplisit, bukan hanya mengandalkan TTL kedaluwarsa, agar data yang tampil di aplikasi tidak pernah basi (stale) setelah suatu aksi berhasil disimpan.
+
+## **8.2 Pemrosesan Asinkron untuk Beban Non-Kritikal**
+
+Proses yang tidak perlu langsung mempengaruhi respons ke pengguna - seperti pengiriman push notification, pencatatan ke Audit Log, sinkronisasi data ke Dashboard/Reporting agregat, dan reminder terjadwal - diproses secara asinkron melalui message queue (mis. RabbitMQ), bukan dieksekusi sinkron di dalam alur request utama.
+
+- Saat transaksi utama (mis. Approve pengajuan) berhasil disimpan ke database, sistem menerbitkan event ke queue; worker terpisah yang mengonsumsi event tersebut untuk mengirim notifikasi, memperbarui cache agregat, dan mencatat audit trail.
+- Pola ini memastikan pengguna menerima konfirmasi keberhasilan aksi secepat mungkin (karena tidak menunggu proses notifikasi selesai), sementara notifikasi tetap terkirim dalam hitungan detik melalui worker di belakang layar.
+- Jika worker gagal memproses (mis. layanan push notification eksternal sedang gangguan), pesan tetap berada di queue dan dicoba ulang otomatis (retry dengan backoff) tanpa kehilangan data maupun perlu mengulang transaksi utama.
+
+## **8.3 Skalabilitas Layanan: Load Balancer**
+
+Lalu lintas dari aplikasi mobile diarahkan melalui load balancer yang mendistribusikan request ke beberapa instance server aplikasi secara merata, memungkinkan sistem menambah kapasitas secara horizontal (menambah instance) saat beban meningkat, misalnya pada jam masuk/pulang kerja bersamaan, tanpa mengubah satu titik layanan menjadi bottleneck tunggal.
+
+- Health check otomatis pada load balancer memastikan request hanya diarahkan ke instance server yang sehat/responsif, dan secara otomatis mengeluarkan instance yang bermasalah dari rotasi.
+- Sesi pengguna tidak bergantung pada satu instance server tertentu (stateless authentication via JWT) sehingga request dari pengguna yang sama dapat dilayani oleh instance server manapun secara aman.
+
+## **8.4 Ringkasan Manfaat Bisnis dari Skema Ini**
+
+| **Komponen**                     | **Manfaat Bisnis**                                                                                                                                                                  |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cache (mis. Redis)               | Waktu respons aplikasi tetap cepat meski diakses ribuan karyawan bersamaan pada jam sibuk, tanpa membebani database utama secara berlebihan.                                        |
+| Message Queue (mis. RabbitMQ)    | Notifikasi dan proses pendukung tetap berjalan andal walau terjadi gangguan sementara pada layanan eksternal, tanpa mengorbankan kecepatan respons transaksi utama.                 |
+| Load Balancer                    | Aplikasi tetap tersedia dan responsif saat jumlah pengguna aktif bertambah (skalabilitas), serta lebih tahan terhadap gangguan pada satu server tanpa memengaruhi seluruh pengguna. |
+| Database sebagai Source of Truth | Menjamin akurasi dan konsistensi data akhir (mis. saldo cuti, status approval) tetap terjaga meskipun sebagian besar traffic baca dilayani dari cache.                              |
+
+_Catatan: Pemilihan teknologi spesifik (Redis, RabbitMQ, jenis load balancer, dsb.) merupakan keputusan teknis Tim Engineering/Infra berdasarkan kebutuhan pada bagian ini; BRD menetapkan kebutuhan pola arsitektur (write-through ke database, cache untuk baca, async processing, horizontal scaling) sebagai kebutuhan bisnis wajib, bukan mendikte produk/vendor tertentu._
+
+# **9\. Kebutuhan Integrasi & Dependency**
+
+## **9.1 Integrasi dengan Modul Backend HRMS Existing**
 
 | **Modul Backend (PRD)**               | **Bentuk Integrasi dengan Mobile App**                                                            |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -380,14 +466,14 @@ Mengacu pada Dokumen Alur Sistem §3.8, kanal Self Service mendukung beberapa ti
 | Document Management System (§6.24)    | Penyimpanan & akses dokumen pribadi, termasuk log akses.                                          |
 | Audit Log (§6.13)                     | Pencatatan seluruh aksi kritikal dari mobile app.                                                 |
 
-## **8.2 Integrasi Perangkat / Layanan Eksternal**
+## **9.2 Integrasi Perangkat / Layanan Eksternal**
 
 - GPS/Location Service perangkat untuk validasi geofencing.
 - Kamera perangkat untuk fitur selfie/face recognition saat absensi (bila diaktifkan).
 - Push Notification Service (Firebase Cloud Messaging untuk Android, Apple Push Notification Service untuk iOS).
 - Biometric API perangkat (Fingerprint/Face ID) untuk login cepat, terpisah dari face recognition absensi.
 
-## **8.3 Dependency terhadap Konsep Company Group**
+## **9.3 Dependency terhadap Konsep Company Group**
 
 Meskipun ruang lingkup utama mobile app adalah self service, approval, dan absensi tingkat individu/tim, beberapa perilaku aplikasi tetap dipengaruhi oleh struktur Company Group sebagaimana dijelaskan pada Dokumen Alur Sistem §2, khususnya untuk kasus Secondment/mutasi lintas company. Ketentuan berikut menjadi acuan:
 
@@ -397,7 +483,7 @@ Meskipun ruang lingkup utama mobile app adalah self service, approval, dan absen
 
 _Catatan: Detail teknis mendalam terkait Company Group (skema data, RBAC, hierarki entitas) sepenuhnya mengacu pada Dokumen Alur Sistem §2 dan tidak diulang di sini; BRD ini hanya menandai titik-titik di mana perilaku mobile app perlu menyesuaikan._
 
-# **9\. Matriks Prioritas Kebutuhan (MoSCoW)**
+# **10\. Matriks Prioritas Kebutuhan (MoSCoW)**
 
 Prioritas berikut menjadi acuan awal untuk perencanaan rilis (release planning); pembagian rinci ke dalam sprint/milestone akan ditentukan lebih lanjut oleh Tim Product bersama Engineering.
 
@@ -408,18 +494,20 @@ Prioritas berikut menjadi acuan awal untuk perencanaan rilis (release planning);
 | Could Have (Rilis 2+)   | Nilai tambah namun tidak menghambat peluncuran awal                             | Permohonan Dokumen, Multi-device management, Multi-bahasa, Konteks Secondment lintas company, Highlight konflik jadwal             |
 | Won't Have (Fase Ini)   | Sengaja tidak dikerjakan pada horizon dokumen ini                               | Modul administratif/back-office, Payroll Run, Recruitment, LMS, Asset Management, Group Executive Dashboard                        |
 
-# **10\. Risiko & Mitigasi**
+# **11\. Risiko & Mitigasi**
 
-| **Risiko**                                                                 | **Dampak**                                                       | **Mitigasi**                                                                                                                          |
-| -------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Akurasi GPS rendah di area kerja tertentu (dalam gedung/basement)          | Karyawan gagal Clock In meski berada di lokasi kerja sah         | Radius geofencing dapat dikonfigurasi lebih longgar per Branch; sediakan opsi 'Perlu Review' alih-alih blokir total (FR-ATT-04)       |
-| Adopsi rendah karena resistensi perubahan dari kanal manual/web ke mobile  | Target adoption rate tidak tercapai, ROI proyek berkurang        | Sosialisasi & training bertahap, UX yang sederhana, quick-win pada fitur Clock In (FR-DASH-01)                                        |
-| Ketergantungan konektivitas internet di lokasi kerja lapangan              | Absensi tidak tercatat tepat waktu                               | Mode offline dengan sinkronisasi otomatis (FR-ATT-05)                                                                                 |
-| Kesalahpahaman approver terhadap kasus lintas Company (Secondment)         | Pengajuan tersangkut/salah arah approval                         | Indikator jelas approver yang dituju pada tampilan pengajuan (FR-SS-08, FR-APR-09)                                                    |
-| Kebocoran data sensitif (slip gaji, dokumen pribadi) bila perangkat dicuri | Pelanggaran privasi & kepatuhan data                             | Re-autentikasi wajib sebelum membuka dokumen sensitif, remote wipe (§7.2)                                                             |
-| Beban server meningkat akibat push notification & polling status real-time | Penurunan performa backend saat jam sibuk (absen pagi bersamaan) | Arsitektur backend perlu mendukung load tinggi terjadwal; di luar scope BRD ini namun dicatat sebagai dependency ke tim Backend/Infra |
+| **Risiko**                                                                                         | **Dampak**                                                                                   | **Mitigasi**                                                                                                                    |
+| -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Akurasi GPS rendah di area kerja tertentu (dalam gedung/basement)                                  | Karyawan gagal Clock In meski berada di lokasi kerja sah                                     | Radius geofencing dapat dikonfigurasi lebih longgar per Branch; sediakan opsi 'Perlu Review' alih-alih blokir total (FR-ATT-04) |
+| Adopsi rendah karena resistensi perubahan dari kanal manual/web ke mobile                          | Target adoption rate tidak tercapai, ROI proyek berkurang                                    | Sosialisasi & training bertahap, UX yang sederhana, quick-win pada fitur Clock In (FR-DASH-01)                                  |
+| Ketergantungan konektivitas internet di lokasi kerja lapangan                                      | Absensi tidak tercatat tepat waktu                                                           | Mode offline dengan sinkronisasi otomatis (FR-ATT-05)                                                                           |
+| Kesalahpahaman approver terhadap kasus lintas Company (Secondment)                                 | Pengajuan tersangkut/salah arah approval                                                     | Indikator jelas approver yang dituju pada tampilan pengajuan (FR-SS-08, FR-APR-09)                                              |
+| Kebocoran data sensitif (slip gaji, dokumen pribadi) bila perangkat dicuri                         | Pelanggaran privasi & kepatuhan data                                                         | Re-autentikasi wajib sebelum membuka dokumen sensitif, remote wipe (§7.2)                                                       |
+| Beban server meningkat akibat push notification & polling status real-time                         | Penurunan performa backend saat jam sibuk (absen pagi bersamaan)                             | Skema caching (Redis) dan load balancer sesuai Bagian 8 untuk menyerap beban baca & mendistribusikan traffic                    |
+| Data pada cache tidak konsisten dengan database (stale data) setelah suatu transaksi               | Pengguna melihat status yang sudah usang (mis. saldo cuti belum ter-update setelah approval) | Invalidasi cache eksplisit segera setelah write berhasil (bukan hanya mengandalkan TTL), sesuai skema write-through pada §8.1   |
+| Antrian pesan (message queue) menumpuk saat layanan konsumen (mis. push notification) gagal/lambat | Notifikasi terlambat sampai ke pengguna                                                      | Mekanisme retry dengan backoff dan monitoring kedalaman antrian (queue depth) pada §8.2                                         |
 
-# **11\. Kriteria Penerimaan Umum (Acceptance Criteria)**
+# **12\. Kriteria Penerimaan Umum (Acceptance Criteria)**
 
 Kriteria berikut berlaku secara umum di seluruh modul dan menjadi syarat minimum sebelum aplikasi dinyatakan siap rilis (Rilis 1 - cakupan Must Have):
 
@@ -431,34 +519,41 @@ Kriteria berikut berlaku secara umum di seluruh modul dan menjadi syarat minimum
 - Aplikasi lulus pengujian keamanan dasar (penetration testing ringan) tanpa temuan kritikal terkait penyimpanan token/data sensitif.
 - Tidak ditemukan crash mayor pada skenario uji utama (Clock In/Out, submit pengajuan, approval) selama UAT (User Acceptance Testing).
 
-# **12\. Lampiran**
+# **13\. Lampiran**
 
-## **12.1 Traceability Matrix - Modul PRD vs Fitur Mobile App**
+## **13.1 Traceability Matrix - Modul PRD vs Fitur Mobile App**
 
-| **Modul PRD/Dokumen Alur Sistem**        | **Fitur di Mobile App**                                             | **Catatan Cakupan**                                                         |
-| ---------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| §6.1 Authentication & Authorization      | Login, biometric, reset password                                    | Company Switcher disederhanakan (Could Have)                                |
-| §6.2 Master Employee                     | Profil & Pengaturan Akun                                            | Edit terbatas pada field non-sensitif                                       |
-| §6.3 Organization Structure              | Referensi struktur pada Approval & Profil                           | Read-only, tidak ada fitur admin di mobile                                  |
-| §6.4 Shift Management                    | Rujukan shift pada Absensi & Kalender                               | Read-only, konfigurasi tetap di web                                         |
-| §6.5 Work Calendar                       | Kalender Kerja & Kalender Tim                                       | Read-only                                                                   |
-| §6.6 Attendance                          | Absensi (Clock In/Out, riwayat, koreksi)                            | Cakupan penuh di mobile                                                     |
-| §6.7 Leave Management                    | Leave Management                                                    | Cakupan penuh di mobile                                                     |
-| §6.8 Self Service Request                | Self Service (Izin/Lembur/Tukar Shift/Dokumen)                      | Cakupan penuh di mobile                                                     |
-| §6.9 Payroll                             | Slip Gaji                                                           | Read-only, setelah finalisasi                                               |
-| §6.12 Notification & Alert               | Notifikasi                                                          | Cakupan penuh di mobile                                                     |
-| §6.13 Audit Log                          | Pencatatan aksi kritikal backend                                    | Tidak ada UI khusus di mobile, hanya sumber data                            |
-| §4.10 Workflow Engine (§6.23)            | Approval Center                                                     | Cakupan penuh di mobile                                                     |
-| §4.11 Document Management System (§6.24) | Dokumen Saya                                                        | Read-only untuk dokumen pribadi karyawan                                    |
-| §2 Company Group                         | Penyesuaian konteks Secondment pada Absensi, Self Service, Approval | Cakupan terbatas - hanya perilaku turunan yang relevan bagi Employee/Atasan |
+| **Modul PRD/Dokumen Alur Sistem**        | **Fitur di Mobile App**                                                                 | **Catatan Cakupan**                                                                                               |
+| ---------------------------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| §6.1 Authentication & Authorization      | Login, biometric, reset password                                                        | Company Switcher disederhanakan (Could Have)                                                                      |
+| §6.2 Master Employee                     | Profil & Pengaturan Akun                                                                | Edit terbatas pada field non-sensitif                                                                             |
+| §6.3 Organization Structure              | Referensi struktur pada Approval & Profil                                               | Read-only, tidak ada fitur admin di mobile                                                                        |
+| §6.4 Shift Management                    | Rujukan shift pada Absensi & Kalender                                                   | Read-only, konfigurasi tetap di web                                                                               |
+| §6.5 Work Calendar                       | Kalender Kerja & Kalender Tim                                                           | Read-only                                                                                                         |
+| §6.6 Attendance                          | Absensi (Clock In/Out, riwayat, koreksi)                                                | Cakupan penuh di mobile                                                                                           |
+| §6.7 Leave Management                    | Leave Management                                                                        | Cakupan penuh di mobile                                                                                           |
+| §6.8 Self Service Request                | Self Service (Izin/Lembur/Tukar Shift/Dokumen)                                          | Cakupan penuh di mobile                                                                                           |
+| §6.9 Payroll                             | Slip Gaji                                                                               | Read-only, setelah finalisasi                                                                                     |
+| §6.12 Notification & Alert               | Notifikasi                                                                              | Cakupan penuh di mobile                                                                                           |
+| §6.13 Audit Log                          | Pencatatan aksi kritikal backend                                                        | Tidak ada UI khusus di mobile, hanya sumber data                                                                  |
+| §4.10 Workflow Engine (§6.23)            | Approval Center                                                                         | Cakupan penuh di mobile                                                                                           |
+| §4.11 Document Management System (§6.24) | Dokumen Saya                                                                            | Read-only untuk dokumen pribadi karyawan                                                                          |
+| §2 Company Group                         | Penyesuaian konteks Secondment pada Absensi, Self Service, Approval                     | Cakupan terbatas - hanya perilaku turunan yang relevan bagi Employee/Atasan                                       |
+| PRD §13 Risk Mitigation                  | Bagian 8 - Arsitektur & Optimasi Kinerja Sistem (caching, message queue, load balancer) | Kebutuhan arsitektur pendukung baru, tidak eksplisit disebut di PRD namun selaras dengan prinsip keandalan sistem |
 
-## **12.2 Glosarium Tambahan**
+## **13.2 Glosarium Tambahan**
 
-| **Istilah** | **Keterangan**                                                                                              |
-| ----------- | ----------------------------------------------------------------------------------------------------------- |
-| Deep-link   | Tautan yang membuka aplikasi langsung ke halaman/konten spesifik, bukan hanya membuka aplikasi secara umum. |
-| MoSCoW      | Teknik prioritisasi kebutuhan: Must have, Should have, Could have, Won't have this time.                    |
-| UAT         | User Acceptance Testing - pengujian oleh pengguna akhir sebelum aplikasi dinyatakan siap rilis.             |
-| BYOD        | Bring Your Own Device - kebijakan penggunaan perangkat pribadi karyawan untuk keperluan kerja.              |
+| **Istilah**                 | **Keterangan**                                                                                                                                                                              |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Deep-link                   | Tautan yang membuka aplikasi langsung ke halaman/konten spesifik, bukan hanya membuka aplikasi secara umum.                                                                                 |
+| MoSCoW                      | Teknik prioritisasi kebutuhan: Must have, Should have, Could have, Won't have this time.                                                                                                    |
+| UAT                         | User Acceptance Testing - pengujian oleh pengguna akhir sebelum aplikasi dinyatakan siap rilis.                                                                                             |
+| BYOD                        | Bring Your Own Device - kebijakan penggunaan perangkat pribadi karyawan untuk keperluan kerja.                                                                                              |
+| Cache-aside / Write-through | Pola arsitektur di mana data ditulis ke database sebagai sumber kebenaran, sementara pembacaan data yang sering diakses dilayani dari lapisan cache (mis. Redis) untuk mempercepat respons. |
+| Redis                       | Salah satu contoh in-memory data store yang umum digunakan sebagai lapisan cache berkecepatan tinggi.                                                                                       |
+| Message Queue / RabbitMQ    | Komponen middleware untuk memproses tugas secara asinkron (mis. pengiriman notifikasi) tanpa memperlambat respons transaksi utama; RabbitMQ adalah salah satu contoh produknya.             |
+| Load Balancer               | Komponen yang mendistribusikan traffic masuk ke beberapa instance server aplikasi agar beban merata dan sistem dapat diskalakan secara horizontal.                                          |
+| TTL (Time to Live)          | Batas waktu suatu data dianggap valid di dalam cache sebelum dianggap kedaluwarsa dan perlu diambil ulang dari database.                                                                    |
+| Idempotency Key             | Penanda unik pada suatu request untuk memastikan pengiriman ulang (retry) tidak menghasilkan transaksi duplikat.                                                                            |
 
 **- Akhir Dokumen -**

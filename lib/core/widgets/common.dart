@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
-import '../models/data.dart';
+
+import 'package:hrm_app/core/theme/app_theme.dart';
+import 'package:hrm_app/features/dashboard/data/models/app_data.dart';
 
 /// ===============================================================
 /// Avatar Colors
@@ -39,10 +40,7 @@ class AvatarWidget extends StatelessWidget {
       width: size,
       height: size,
       alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       child: Text(
         initials,
         style: TextStyle(
@@ -96,9 +94,7 @@ class StatusBadge extends StatelessWidget {
     }
   }
 
-  factory StatusBadge.attendance(
-    AttendanceStatus status,
-  ) {
+  factory StatusBadge.attendance(AttendanceStatus status) {
     switch (status) {
       case AttendanceStatus.onTime:
         return const StatusBadge(
@@ -133,10 +129,7 @@ class StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(50),
@@ -178,12 +171,9 @@ class SectionHeader extends StatelessWidget {
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
         ),
 
@@ -193,9 +183,7 @@ class SectionHeader extends StatelessWidget {
             child: Text(
               actionLabel!,
               style: TextStyle(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primary,
+                color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
               ),
@@ -224,29 +212,20 @@ class AppCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-    final isDark =
-        Theme.of(context).brightness ==
-            Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius:
-            BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(18),
         child: Ink(
           padding: padding,
           decoration: BoxDecoration(
-            color: isDark
-                ? AppColors.darkCard
-                : AppColors.lightSurface,
-            borderRadius:
-                BorderRadius.circular(18),
+            color: isDark ? AppColors.darkCard : AppColors.lightSurface,
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: isDark
-                  ? AppColors.darkBorder
-                  : AppColors.lightBorder,
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
             ),
           ),
           child: child,
@@ -255,6 +234,7 @@ class AppCard extends StatelessWidget {
     );
   }
 }
+
 /// ===============================================================
 /// KPI CARD
 /// ===============================================================
@@ -277,8 +257,7 @@ class KpiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark =
-        Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -287,25 +266,19 @@ class KpiCard extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isDark
-                ? AppColors.darkCard
-                : AppColors.lightSurface,
+            color: isDark ? AppColors.darkCard : AppColors.lightSurface,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: isDark
-                  ? AppColors.darkBorder
-                  : AppColors.lightBorder,
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
             ),
           ),
 
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               /// HEADER
               Row(
                 children: [
-
                   Expanded(
                     child: Text(
                       label,
@@ -351,9 +324,7 @@ class KpiCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: compact ? 24 : 28,
                     fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? AppColors.darkText
-                        : AppColors.lightText,
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                   ),
                 ),
               ),
@@ -379,6 +350,7 @@ class KpiCard extends StatelessWidget {
     );
   }
 }
+
 /// ===============================================================
 /// LEAVE BALANCE CARD
 /// ===============================================================
@@ -386,22 +358,16 @@ class KpiCard extends StatelessWidget {
 class LeaveBalanceCard extends StatelessWidget {
   final LeaveBalance balance;
 
-  const LeaveBalanceCard({
-    super.key,
-    required this.balance,
-  });
+  const LeaveBalanceCard({super.key, required this.balance});
 
   @override
   Widget build(BuildContext context) {
-    final isDark =
-        Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final color =
-        _avatarColors[balance.colorIndex % _avatarColors.length];
+    final color = _avatarColors[balance.colorIndex % _avatarColors.length];
 
     return LayoutBuilder(
       builder: (context, constraints) {
-
         final compact = constraints.maxWidth < 170;
 
         final iconSize = compact ? 20.0 : 24.0;
@@ -413,14 +379,10 @@ class LeaveBalanceCard extends StatelessWidget {
 
         return Container(
           decoration: BoxDecoration(
-            color: isDark
-                ? AppColors.darkCard
-                : AppColors.lightSurface,
+            color: isDark ? AppColors.darkCard : AppColors.lightSurface,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: isDark
-                  ? AppColors.darkBorder
-                  : AppColors.lightBorder,
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
             ),
           ),
 
@@ -429,14 +391,11 @@ class LeaveBalanceCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               /// ==========================
               /// HEADER
               /// ==========================
-
               Row(
                 children: [
-
                   Container(
                     width: iconBox,
                     height: iconBox,
@@ -469,7 +428,6 @@ class LeaveBalanceCard extends StatelessWidget {
               /// ==========================
               /// REMAINING DAYS
               /// ==========================
-
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
@@ -478,9 +436,7 @@ class LeaveBalanceCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: valueFont,
                     fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? AppColors.darkText
-                        : AppColors.lightText,
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                   ),
                 ),
               ),
@@ -504,16 +460,13 @@ class LeaveBalanceCard extends StatelessWidget {
               /// ==========================
               /// PROGRESS
               /// ==========================
-
               ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: LinearProgressIndicator(
                   value: balance.percentage,
                   minHeight: 7,
-                  backgroundColor:
-                      color.withValues(alpha: .15),
-                  valueColor:
-                      AlwaysStoppedAnimation(color),
+                  backgroundColor: color.withValues(alpha: .15),
+                  valueColor: AlwaysStoppedAnimation(color),
                 ),
               ),
 
@@ -521,12 +474,7 @@ class LeaveBalanceCard extends StatelessWidget {
 
               Row(
                 children: [
-
-                  Icon(
-                    Icons.check_circle_outline,
-                    size: 14,
-                    color: color,
-                  ),
+                  Icon(Icons.check_circle_outline, size: 14, color: color),
 
                   const SizedBox(width: 6),
 
@@ -552,6 +500,7 @@ class LeaveBalanceCard extends StatelessWidget {
     );
   }
 }
+
 /// ===============================================================
 /// QUICK ACTION
 /// ===============================================================
@@ -572,25 +521,19 @@ class QuickAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark =
-        Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return LayoutBuilder(
       builder: (context, constraints) {
-
-        final screenWidth =
-            MediaQuery.of(context).size.width;
+        final screenWidth = MediaQuery.of(context).size.width;
 
         final bool compact = screenWidth < 400;
 
-        final double iconBox =
-            compact ? 52 : 60;
+        final double iconBox = compact ? 52 : 60;
 
-        final double iconSize =
-            compact ? 22 : 26;
+        final double iconSize = compact ? 22 : 26;
 
-        final double textWidth =
-            compact ? 72 : 84;
+        final double textWidth = compact ? 72 : 84;
 
         return InkWell(
           onTap: onTap,
@@ -602,30 +545,20 @@ class QuickAction extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-
                 AnimatedContainer(
-                  duration: const Duration(
-                    milliseconds: 200,
-                  ),
+                  duration: const Duration(milliseconds: 200),
 
                   width: iconBox,
                   height: iconBox,
 
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: .10),
-                    borderRadius:
-                        BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(18),
 
-                    border: Border.all(
-                      color: color.withValues(alpha: .20),
-                    ),
+                    border: Border.all(color: color.withValues(alpha: .20)),
                   ),
 
-                  child: Icon(
-                    icon,
-                    color: color,
-                    size: iconSize,
-                  ),
+                  child: Icon(icon, color: color, size: iconSize),
                 ),
 
                 const SizedBox(height: 10),
@@ -636,8 +569,7 @@ class QuickAction extends StatelessWidget {
                   child: Text(
                     label,
                     maxLines: 2,
-                    overflow:
-                        TextOverflow.ellipsis,
+                    overflow: TextOverflow.ellipsis,
 
                     textAlign: TextAlign.center,
 
