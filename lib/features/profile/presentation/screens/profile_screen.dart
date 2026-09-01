@@ -1,28 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:hrm_app/core/theme/app_theme.dart';
 import 'package:hrm_app/core/widgets/common.dart';
-import 'package:hrm_app/features/dashboard/data/models/app_data.dart';
+import 'package:hrm_app/features/profile/profile_providers.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends ConsumerWidget {
   final VoidCallback onThemeToggle;
+  final VoidCallback onSignOut;
   final bool isDarkMode;
 
   const ProfileScreen({
     super.key,
     required this.onThemeToggle,
+    required this.onSignOut,
     required this.isDarkMode,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textPrimary = isDark ? AppColors.darkText : AppColors.lightText;
     final textSub = isDark ? AppColors.darkTextSub : AppColors.lightTextSub;
     final bgColor = isDark ? AppColors.darkBg : AppColors.lightBg;
     final cardColor = isDark ? AppColors.darkCard : AppColors.lightSurface;
     final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
-    final emp = AppData.currentEmployee;
+    final emp = ref.watch(profileControllerProvider);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -130,7 +133,7 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(width: 10),
                 _InfoChip(
                   icon: Icons.location_on_rounded,
-                  label: 'Jakarta',
+                  label: emp.location,
                   isDark: isDark,
                 ),
               ],
@@ -367,7 +370,7 @@ class ProfileScreen extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: () {},
+                    onPressed: onSignOut,
                     icon: const Icon(
                       Icons.logout_rounded,
                       size: 18,

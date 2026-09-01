@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:hrm_app/core/theme/app_theme.dart';
-import 'package:hrm_app/features/dashboard/data/models/app_data.dart';
 
 /// ===============================================================
 /// Avatar Colors
@@ -68,63 +67,6 @@ class StatusBadge extends StatelessWidget {
     required this.backgroundColor,
     required this.textColor,
   });
-
-  factory StatusBadge.request(RequestStatus status) {
-    switch (status) {
-      case RequestStatus.approved:
-        return const StatusBadge(
-          label: "Approved",
-          backgroundColor: Color(0xffDCFCE7),
-          textColor: Color(0xff166534),
-        );
-
-      case RequestStatus.pending:
-        return const StatusBadge(
-          label: "Pending",
-          backgroundColor: Color(0xffFEF3C7),
-          textColor: Color(0xff92400E),
-        );
-
-      case RequestStatus.rejected:
-        return const StatusBadge(
-          label: "Rejected",
-          backgroundColor: Color(0xffFEE2E2),
-          textColor: Color(0xff991B1B),
-        );
-    }
-  }
-
-  factory StatusBadge.attendance(AttendanceStatus status) {
-    switch (status) {
-      case AttendanceStatus.onTime:
-        return const StatusBadge(
-          label: "On Time",
-          backgroundColor: Color(0xffDCFCE7),
-          textColor: Color(0xff166534),
-        );
-
-      case AttendanceStatus.late:
-        return const StatusBadge(
-          label: "Late",
-          backgroundColor: Color(0xffFEF3C7),
-          textColor: Color(0xff92400E),
-        );
-
-      case AttendanceStatus.leave:
-        return const StatusBadge(
-          label: "Leave",
-          backgroundColor: Color(0xffDBEAFE),
-          textColor: Color(0xff1E40AF),
-        );
-
-      case AttendanceStatus.absent:
-        return const StatusBadge(
-          label: "Absent",
-          backgroundColor: Color(0xffFEE2E2),
-          textColor: Color(0xff991B1B),
-        );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -356,15 +298,27 @@ class KpiCard extends StatelessWidget {
 /// ===============================================================
 
 class LeaveBalanceCard extends StatelessWidget {
-  final LeaveBalance balance;
+  final String type;
+  final int total;
+  final int used;
+  final int colorIndex;
 
-  const LeaveBalanceCard({super.key, required this.balance});
+  const LeaveBalanceCard({
+    super.key,
+    required this.type,
+    required this.total,
+    required this.used,
+    required this.colorIndex,
+  });
+
+  int get remaining => total - used;
+  double get percentage => total == 0 ? 0 : used / total;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final color = _avatarColors[balance.colorIndex % _avatarColors.length];
+    final color = _avatarColors[colorIndex % _avatarColors.length];
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -413,7 +367,7 @@ class LeaveBalanceCard extends StatelessWidget {
                   const Spacer(),
 
                   Text(
-                    "${(balance.percentage * 100).round()}%",
+                    "${(percentage * 100).round()}%",
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
@@ -432,7 +386,7 @@ class LeaveBalanceCard extends StatelessWidget {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  "${balance.remaining}",
+                  "$remaining",
                   style: TextStyle(
                     fontSize: valueFont,
                     fontWeight: FontWeight.bold,
@@ -444,7 +398,7 @@ class LeaveBalanceCard extends StatelessWidget {
               const SizedBox(height: 4),
 
               Text(
-                balance.type,
+                type,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -463,7 +417,7 @@ class LeaveBalanceCard extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: LinearProgressIndicator(
-                  value: balance.percentage,
+                  value: percentage,
                   minHeight: 7,
                   backgroundColor: color.withValues(alpha: .15),
                   valueColor: AlwaysStoppedAnimation(color),
@@ -480,7 +434,7 @@ class LeaveBalanceCard extends StatelessWidget {
 
                   Expanded(
                     child: Text(
-                      "${balance.used} of ${balance.total} days used",
+                      "$used of $total days used",
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(

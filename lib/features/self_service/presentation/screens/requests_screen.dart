@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:hrm_app/core/theme/app_theme.dart';
 import 'package:hrm_app/core/widgets/common.dart';
-import 'package:hrm_app/features/dashboard/data/models/app_data.dart';
+import 'package:hrm_app/features/self_service/domain/entities/employee_request.dart';
+import 'package:hrm_app/features/self_service/self_service_providers.dart';
 
-class RequestsScreen extends StatefulWidget {
+class RequestsScreen extends ConsumerStatefulWidget {
   const RequestsScreen({super.key});
 
   @override
-  State<RequestsScreen> createState() => _RequestsScreenState();
+  ConsumerState<RequestsScreen> createState() => _RequestsScreenState();
 }
 
-class _RequestsScreenState extends State<RequestsScreen>
+class _RequestsScreenState extends ConsumerState<RequestsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
@@ -92,9 +94,10 @@ class _RequestsScreenState extends State<RequestsScreen>
     final cardColor = isDark ? AppColors.darkCard : AppColors.lightSurface;
     final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
 
+    final requests = ref.watch(requestControllerProvider);
     final items = filter == null
-        ? AppData.recentRequests
-        : AppData.recentRequests.where((r) => r.status == filter).toList();
+        ? requests
+        : requests.where((r) => r.status == filter).toList();
 
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -209,7 +212,11 @@ class _RequestsScreenState extends State<RequestsScreen>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _NewRequestSheet(isDark: isDark),
+      builder: (_) => _NewRequestSheet(
+        isDark: isDark,
+        onSubmit: (type) =>
+            ref.read(requestControllerProvider.notifier).submit(type),
+      ),
     );
   }
 }
@@ -271,7 +278,7 @@ class _RequestTypeCard extends StatelessWidget {
 }
 
 class _RequestCard extends StatelessWidget {
-  final Request request;
+  final EmployeeRequest request;
   final bool isDark;
   final Color textPrimary;
   final Color textSub;
@@ -370,16 +377,36 @@ class _RequestCard extends StatelessWidget {
               ],
             ),
           ),
-          StatusBadge.request(request.status),
+          _requestBadge(request.status),
         ],
       ),
     );
   }
+
+  StatusBadge _requestBadge(RequestStatus status) => switch (status) {
+    RequestStatus.approved => const StatusBadge(
+      label: 'Approved',
+      backgroundColor: Color(0xffDCFCE7),
+      textColor: Color(0xff166534),
+    ),
+    RequestStatus.pending => const StatusBadge(
+      label: 'Pending',
+      backgroundColor: Color(0xffFEF3C7),
+      textColor: Color(0xff92400E),
+    ),
+    RequestStatus.rejected => const StatusBadge(
+      label: 'Rejected',
+      backgroundColor: Color(0xffFEE2E2),
+      textColor: Color(0xff991B1B),
+    ),
+  };
 }
 
 class _NewRequestSheet extends StatefulWidget {
   final bool isDark;
-  const _NewRequestSheet({required this.isDark});
+  final Future<void> Function(String type) onSubmit;
+
+  const _NewRequestSheet({required this.isDark, required this.onSubmit});
 
   @override
   State<_NewRequestSheet> createState() => _NewRequestSheetState();
@@ -556,7 +583,10 @@ class _NewRequestSheetState extends State<_NewRequestSheet> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () async {
+                await widget.onSubmit(_selectedType);
+                if (context.mounted) Navigator.pop(context);
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,

@@ -7,24 +7,113 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hrm_app/core/config/app_config.dart';
+import 'package:hrm_app/core/network/dio_client.dart';
+import 'package:hrm_app/core/security/token_storage.dart';
+import 'package:hrm_app/core/storage/preferences.dart';
 import 'package:hrm_app/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const HrmsApp());
+  testWidgets('renders login when no session exists', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
+    const config = AppConfig(
+      baseUrl: 'https://example.test',
+      connectTimeout: Duration(seconds: 1),
+      receiveTimeout: Duration(seconds: 1),
+      enableNetworkLogs: false,
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(preferences),
+          appConfigProvider.overrideWithValue(config),
+          tokenStorageProvider.overrideWithValue(_FakeTokenStorage()),
+        ],
+        child: const HrmsApp(),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Masuk'), findsNWidgets(2));
+    expect(find.text('Alamat email'), findsOneWidget);
+    expect(find.text('HRMS Enterprise'), findsNothing);
   });
+
+  testWidgets('renders the existing HRMS shell without changing its UI', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
+    const config = AppConfig(
+      baseUrl: 'https://example.test',
+      connectTimeout: Duration(seconds: 1),
+      receiveTimeout: Duration(seconds: 1),
+      enableNetworkLogs: false,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(preferences),
+          appConfigProvider.overrideWithValue(config),
+          tokenStorageProvider.overrideWithValue(_FakeTokenStorage()),
+        ],
+        child: const MaterialApp(
+          home: MainShell(
+            themeMode: ThemeMode.light,
+            onThemeToggle: _noop,
+            onSignOut: _noop,
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Attendance'), findsOneWidget);
+  });
+}
+
+void _noop() {}
+
+class _FakeTokenStorage implements TokenStorage {
+  String? accessToken;
+  String? refreshToken;
+  Map<String, dynamic>? session;
+
+  @override
+  Future<void> clear() async {
+    accessToken = null;
+    refreshToken = null;
+    session = null;
+  }
+
+  @override
+  Future<String?> readAccessToken() async => accessToken;
+
+  @override
+  Future<String?> readRefreshToken() async => refreshToken;
+
+  @override
+  Future<Map<String, dynamic>?> readSession() async => session;
+
+  @override
+  Future<void> saveSession(Map<String, dynamic> value) async => session = value;
+
+  @override
+  Future<void> saveTokens({
+    required String accessToken,
+    String? refreshToken,
+  }) async {
+    this.accessToken = accessToken;
+    this.refreshToken = refreshToken;
+  }
 }

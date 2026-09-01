@@ -1,0 +1,90 @@
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  test('core never imports a feature', () {
+    final violations = _dartFiles('lib/core')
+        .where(
+          (file) =>
+              file.readAsStringSync().contains('package:hrm_app/features/'),
+        )
+        .map((file) => file.path)
+        .toList();
+
+    expect(violations, isEmpty, reason: 'Core must be feature-independent');
+  });
+
+  test('domain layers stay framework and infrastructure independent', () {
+    const forbidden = [
+      'package:flutter/',
+      'package:flutter_riverpod/',
+      'package:dio/',
+      '/data/',
+      '/presentation/',
+    ];
+    final violations = <String>[];
+    for (final file in _dartFiles('lib/features')) {
+      if (!file.path.contains('/domain/')) continue;
+      final source = file.readAsStringSync();
+      if (forbidden.any(source.contains)) violations.add(file.path);
+    }
+
+    expect(violations, isEmpty, reason: 'Domain must contain pure Dart rules');
+  });
+
+  test('presentation never imports a data layer', () {
+    final violations = <String>[];
+    for (final file in _dartFiles('lib/features')) {
+      if (!file.path.contains('/presentation/')) continue;
+      if (file.readAsStringSync().contains('/data/')) violations.add(file.path);
+    }
+
+    expect(
+      violations,
+      isEmpty,
+      reason: 'Presentation must depend on domain contracts/providers only',
+    );
+  });
+
+  test('features do not reach into another feature', () {
+    final violations = <String>[];
+    final featureImport = RegExp(r'package:hrm_app/features/([^/]+)/');
+    for (final file in _dartFiles('lib/features')) {
+      final relative = file.path.split('lib/features/').last;
+      final owner = relative.split('/').first;
+      for (final match in featureImport.allMatches(file.readAsStringSync())) {
+        if (match.group(1) != owner) violations.add(file.path);
+      }
+    }
+
+    expect(violations.toSet(), isEmpty, reason: 'Features must stay isolated');
+  });
+
+  test('domain core imports are explicitly allowlisted', () {
+    const allowed = {
+      'package:hrm_app/core/errors/result.dart',
+      'package:hrm_app/core/errors/failure.dart',
+      'package:hrm_app/core/services/location_gateway.dart',
+    };
+    final coreImport = RegExp(r"import '([^']*package:hrm_app/core/[^']*)';");
+    final violations = <String>[];
+    for (final file in _dartFiles('lib/features')) {
+      if (!file.path.contains('/domain/')) continue;
+      for (final match in coreImport.allMatches(file.readAsStringSync())) {
+        if (!allowed.contains(match.group(1))) violations.add(file.path);
+      }
+    }
+
+    expect(
+      violations.toSet(),
+      isEmpty,
+      reason: 'Review shared domain contracts',
+    );
+  });
+}
+
+Iterable<File> _dartFiles(String path) => Directory(path)
+    .listSync(recursive: true)
+    .whereType<File>()
+    .where((file) => file.path.endsWith('.dart'));

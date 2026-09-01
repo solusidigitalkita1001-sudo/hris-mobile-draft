@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:hrm_app/core/theme/app_theme.dart';
 import 'package:hrm_app/core/widgets/common.dart';
-import 'package:hrm_app/features/dashboard/data/models/app_data.dart';
+import 'package:hrm_app/features/attendance/attendance_providers.dart';
+import 'package:hrm_app/features/attendance/presentation/models/attendance_history_item.dart';
 
-class AttendanceScreen extends StatefulWidget {
+class AttendanceScreen extends ConsumerStatefulWidget {
   const AttendanceScreen({super.key});
 
   @override
-  State<AttendanceScreen> createState() => _AttendanceScreenState();
+  ConsumerState<AttendanceScreen> createState() => _AttendanceScreenState();
 }
 
-class _AttendanceScreenState extends State<AttendanceScreen>
+class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
     with SingleTickerProviderStateMixin {
-  bool _clockedIn = true;
   bool _selfieVerified = true;
   final bool _gpsVerified = true;
   late TabController _tabController;
@@ -32,6 +33,13 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(attendanceControllerProvider, (previous, next) {
+      if (next.hasError && previous?.error != next.error) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(next.error.toString())));
+      }
+    });
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textPrimary = isDark ? AppColors.darkText : AppColors.lightText;
     final textSub = isDark ? AppColors.darkTextSub : AppColors.lightTextSub;
@@ -261,7 +269,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
 
         // Clock button
         GestureDetector(
-          onTap: () => setState(() => _clockedIn = !_clockedIn),
+          onTap: _toggleAttendance,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 250),
             width: double.infinity,
@@ -314,6 +322,13 @@ class _AttendanceScreenState extends State<AttendanceScreen>
     );
   }
 
+  Future<void> _toggleAttendance() async {
+    await ref.read(attendanceControllerProvider.notifier).toggleAttendance();
+  }
+
+  bool get _clockedIn =>
+      ref.watch(attendanceControllerProvider).valueOrNull?.isActive ?? true;
+
   Widget _buildHistory(
     bool isDark,
     Color textPrimary,
@@ -327,7 +342,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
         // Week strip
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: AppData.thisWeek.map((r) {
+          children: AttendanceHistoryData.thisWeek.map((r) {
             final isToday = r.day == 'Fri';
             return _DayStrip(
               day: r.day,
@@ -368,10 +383,12 @@ class _AttendanceScreenState extends State<AttendanceScreen>
             border: Border.all(color: borderColor),
           ),
           child: Column(
-            children: AppData.thisWeek.asMap().entries.map((entry) {
+            children: AttendanceHistoryData.thisWeek.asMap().entries.map((
+              entry,
+            ) {
               final i = entry.key;
               final r = entry.value;
-              final isLast = i == AppData.thisWeek.length - 1;
+              final isLast = i == AttendanceHistoryData.thisWeek.length - 1;
               return Column(
                 children: [
                   Padding(
@@ -385,7 +402,9 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                           width: 36,
                           height: 36,
                           decoration: BoxDecoration(
-                            color: _statusColor(r.status).withValues(alpha: 0.1),
+                            color: _statusColor(
+                              r.status,
+                            ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
@@ -417,7 +436,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>
                             ],
                           ),
                         ),
-                        StatusBadge.attendance(r.status),
+                        _attendanceBadge(r.status),
                       ],
                     ),
                   ),
@@ -447,31 +466,55 @@ class _AttendanceScreenState extends State<AttendanceScreen>
     );
   }
 
-  Color _statusColor(AttendanceStatus s) {
+  Color _statusColor(AttendanceHistoryStatus s) {
     switch (s) {
-      case AttendanceStatus.onTime:
+      case AttendanceHistoryStatus.onTime:
         return AppColors.success;
-      case AttendanceStatus.late:
+      case AttendanceHistoryStatus.late:
         return AppColors.warning;
-      case AttendanceStatus.absent:
+      case AttendanceHistoryStatus.absent:
         return AppColors.danger;
-      case AttendanceStatus.leave:
+      case AttendanceHistoryStatus.leave:
         return AppColors.info;
     }
   }
 
-  IconData _statusIcon(AttendanceStatus s) {
+  IconData _statusIcon(AttendanceHistoryStatus s) {
     switch (s) {
-      case AttendanceStatus.onTime:
+      case AttendanceHistoryStatus.onTime:
         return Icons.check_circle_rounded;
-      case AttendanceStatus.late:
+      case AttendanceHistoryStatus.late:
         return Icons.access_time_rounded;
-      case AttendanceStatus.absent:
+      case AttendanceHistoryStatus.absent:
         return Icons.cancel_rounded;
-      case AttendanceStatus.leave:
+      case AttendanceHistoryStatus.leave:
         return Icons.beach_access_rounded;
     }
   }
+
+  StatusBadge _attendanceBadge(AttendanceHistoryStatus status) =>
+      switch (status) {
+        AttendanceHistoryStatus.onTime => const StatusBadge(
+          label: 'On Time',
+          backgroundColor: Color(0xffDCFCE7),
+          textColor: Color(0xff166534),
+        ),
+        AttendanceHistoryStatus.late => const StatusBadge(
+          label: 'Late',
+          backgroundColor: Color(0xffFEF3C7),
+          textColor: Color(0xff92400E),
+        ),
+        AttendanceHistoryStatus.leave => const StatusBadge(
+          label: 'Leave',
+          backgroundColor: Color(0xffDBEAFE),
+          textColor: Color(0xff1E40AF),
+        ),
+        AttendanceHistoryStatus.absent => const StatusBadge(
+          label: 'Absent',
+          backgroundColor: Color(0xffFEE2E2),
+          textColor: Color(0xff991B1B),
+        ),
+      };
 }
 
 // ─── Sub-widgets ──────────────────────────────────────────────────────────────
@@ -588,7 +631,7 @@ class _TodayStat extends StatelessWidget {
 class _DayStrip extends StatelessWidget {
   final String day;
   final String date;
-  final AttendanceStatus status;
+  final AttendanceHistoryStatus status;
   final bool isToday;
   final bool isDark;
 
@@ -602,13 +645,13 @@ class _DayStrip extends StatelessWidget {
 
   Color get _statusColor {
     switch (status) {
-      case AttendanceStatus.onTime:
+      case AttendanceHistoryStatus.onTime:
         return AppColors.success;
-      case AttendanceStatus.late:
+      case AttendanceHistoryStatus.late:
         return AppColors.warning;
-      case AttendanceStatus.absent:
+      case AttendanceHistoryStatus.absent:
         return AppColors.danger;
-      case AttendanceStatus.leave:
+      case AttendanceHistoryStatus.leave:
         return AppColors.info;
     }
   }
@@ -686,7 +729,9 @@ class _MapGridPainter extends CustomPainter {
     }
     // A few thicker "road" lines
     final roadPaint = Paint()
-      ..color = (isDark ? Colors.white : AppColors.primary).withValues(alpha: 0.08)
+      ..color = (isDark ? Colors.white : AppColors.primary).withValues(
+        alpha: 0.08,
+      )
       ..strokeWidth = 6;
     canvas.drawLine(
       Offset(size.width * 0.3, 0),

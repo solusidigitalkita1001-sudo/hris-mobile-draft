@@ -5,7 +5,34 @@ abstract class Failure {
 }
 
 class ServerFailure extends Failure {
-  const ServerFailure(super.message);
+  const ServerFailure(
+    super.message, {
+    this.statusCode,
+    this.code,
+    this.fieldErrors = const {},
+  });
+
+  final int? statusCode;
+  final String? code;
+  final Map<String, String> fieldErrors;
+}
+
+class AuthenticationFailure extends Failure {
+  const AuthenticationFailure(super.message);
+}
+
+class ForbiddenFailure extends Failure {
+  const ForbiddenFailure(super.message);
+}
+
+class ValidationFailure extends Failure {
+  const ValidationFailure(super.message, {this.fieldErrors = const {}});
+
+  final Map<String, String> fieldErrors;
+}
+
+class RateLimitFailure extends Failure {
+  const RateLimitFailure(super.message);
 }
 
 class CacheFailure extends Failure {

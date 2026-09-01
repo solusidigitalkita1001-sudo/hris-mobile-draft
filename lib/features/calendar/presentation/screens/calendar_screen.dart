@@ -1,35 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:hrm_app/core/theme/app_theme.dart';
 import 'package:hrm_app/core/widgets/common.dart';
+import 'package:hrm_app/features/calendar/calendar_providers.dart';
+import 'package:hrm_app/features/calendar/domain/entities/calendar_data.dart';
 
-class CalendarScreen extends StatefulWidget {
+class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
 
   @override
-  State<CalendarScreen> createState() => _CalendarScreenState();
+  ConsumerState<CalendarScreen> createState() => _CalendarScreenState();
 }
 
-class _CalendarScreenState extends State<CalendarScreen> {
+class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   int _selectedDay = 20;
   int _displayMonth = 6;
   int _displayYear = 2025;
 
-  // Event data for June 2025
-  final Map<int, List<_CalEvent>> _events = {
-    5: [_CalEvent('Public Holiday — Eid Al-Adha', AppColors.danger)],
-    10: [_CalEvent('Dewi — Annual Leave', AppColors.primary)],
-    11: [_CalEvent('Dewi — Annual Leave', AppColors.primary)],
-    15: [_CalEvent('Team Offsite (Engineering)', AppColors.purple)],
-    20: [
-      _CalEvent('All-Hands Meeting 10:00', AppColors.success),
-      _CalEvent('Putri — Annual Leave', AppColors.primary),
-    ],
-    21: [_CalEvent('Putri — Annual Leave', AppColors.primary)],
-    22: [_CalEvent('Putri — Annual Leave', AppColors.primary)],
-    25: [_CalEvent('Payroll Disbursement', AppColors.success)],
-    27: [_CalEvent('Q2 Performance Review', AppColors.warning)],
-    30: [_CalEvent('Month-End HR Reports Due', AppColors.info)],
+  Map<int, List<_CalEvent>> get _events => ref
+      .watch(calendarControllerProvider)
+      .eventsByDay
+      .map(
+        (day, events) => MapEntry(
+          day,
+          events
+              .map((event) => _CalEvent(event.label, _eventColor(event.tone)))
+              .toList(),
+        ),
+      );
+
+  Color _eventColor(CalendarEventTone tone) => switch (tone) {
+    CalendarEventTone.danger => AppColors.danger,
+    CalendarEventTone.primary => AppColors.primary,
+    CalendarEventTone.purple => AppColors.purple,
+    CalendarEventTone.success => AppColors.success,
+    CalendarEventTone.warning => AppColors.warning,
+    CalendarEventTone.info => AppColors.info,
   };
 
   String get _monthName {

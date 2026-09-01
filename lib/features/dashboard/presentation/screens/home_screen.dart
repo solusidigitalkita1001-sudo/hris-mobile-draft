@@ -1,21 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:hrm_app/core/theme/app_theme.dart';
 import 'package:hrm_app/core/widgets/common.dart';
-import 'package:hrm_app/features/dashboard/data/models/app_data.dart';
+import 'package:hrm_app/features/dashboard/dashboard_providers.dart';
+import 'package:hrm_app/features/dashboard/domain/entities/dashboard_snapshot.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  bool _clockedIn = true;
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  bool? _clockedInOverride;
 
-  final String _clockInTime = "08:02";
-  final String _workingTime = "8h 34m";
+  DashboardSnapshot get _dashboard => ref.watch(dashboardControllerProvider);
+
+  bool get _clockedIn =>
+      _clockedInOverride ?? _dashboard.attendance.isClockedIn;
+
+  String get _clockInTime {
+    final value = _dashboard.attendance.clockInTime;
+    if (value == null) return '--:--';
+    return '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+  }
+
+  String get _workingTime {
+    final minutes = _dashboard.attendance.workingMinutes;
+    return '${minutes ~/ 60}h ${minutes % 60}m';
+  }
 
   String _greeting() {
     final hour = DateTime.now().hour;
@@ -39,9 +54,8 @@ class _HomeScreenState extends State<HomeScreen> {
         child: RefreshIndicator(
           color: AppColors.primary,
 
-          onRefresh: () async {
-            await Future.delayed(const Duration(seconds: 1));
-          },
+          onRefresh: () =>
+              ref.read(dashboardControllerProvider.notifier).refresh(),
 
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -74,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(height: 4),
 
                             Text(
-                              AppData.currentEmployee.name,
+                              _dashboard.employee.name,
 
                               maxLines: 1,
 
@@ -99,10 +113,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       Stack(
                         children: [
                           AvatarWidget(
-                            initials: AppData.currentEmployee.initials,
+                            initials: _dashboard.employee.initials,
 
-                            colorIndex:
-                                AppData.currentEmployee.avatarColorIndex,
+                            colorIndex: _dashboard.employee.avatarColorIndex,
 
                             size: compact ? 46 : 52,
                           ),
@@ -263,7 +276,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                             onPressed: () {
                               setState(() {
-                                _clockedIn = !_clockedIn;
+                                _clockedInOverride = !_clockedIn;
                               });
                             },
 
@@ -399,7 +412,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     physics: const NeverScrollableScrollPhysics(),
 
-                    itemCount: AppData.leaveBalances.length,
+                    itemCount: _dashboard.leaveBalances.length,
 
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: crossAxisCount,
@@ -413,7 +426,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     itemBuilder: (_, index) {
                       return LeaveBalanceCard(
-                        balance: AppData.leaveBalances[index],
+                        type: _dashboard.leaveBalances[index].type,
+                        total: _dashboard.leaveBalances[index].total,
+                        used: _dashboard.leaveBalances[index].used,
+                        colorIndex: _dashboard.leaveBalances[index].colorIndex,
                       );
                     },
                   );
@@ -454,10 +470,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     childAspectRatio: 1.18,
 
-                    children: const [
+                    children: [
                       KpiCard(
                         label: "Attendance",
-                        value: "96%",
+                        value:
+                            "${_dashboard.monthlySummary.attendancePercentage}%",
                         sub: "This Month",
                         accentColor: AppColors.success,
                         icon: Icons.check_circle,
@@ -465,7 +482,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       KpiCard(
                         label: "Late",
-                        value: "2",
+                        value: "${_dashboard.monthlySummary.lateCount}",
                         sub: "Occurrences",
                         accentColor: AppColors.warning,
                         icon: Icons.access_time,
@@ -473,7 +490,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       KpiCard(
                         label: "Overtime",
-                        value: "12h",
+                        value: "${_dashboard.monthlySummary.overtimeHours}h",
                         sub: "This Month",
                         accentColor: AppColors.primary,
                         icon: Icons.schedule,
@@ -481,7 +498,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       KpiCard(
                         label: "Leave",
-                        value: "5",
+                        value: "${_dashboard.monthlySummary.remainingLeave}",
                         sub: "Remaining",
                         accentColor: AppColors.danger,
                         icon: Icons.beach_access,
@@ -595,7 +612,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 16),
 
-              ...AppData.announcements.map(
+              ..._dashboard.announcements.map(
                 (item) => Padding(
                   padding: const EdgeInsets.only(bottom: 14),
 
