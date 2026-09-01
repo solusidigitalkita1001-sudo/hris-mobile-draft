@@ -12,6 +12,7 @@ import 'package:hrm_app/core/config/app_config.dart';
 import 'package:hrm_app/core/network/dio_client.dart';
 import 'package:hrm_app/core/security/token_storage.dart';
 import 'package:hrm_app/core/storage/preferences.dart';
+import 'package:hrm_app/core/theme/app_theme.dart';
 import 'package:hrm_app/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -79,6 +80,39 @@ void main() {
 
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Attendance'), findsOneWidget);
+  });
+
+  testWidgets('renders login inputs with dark-mode colors', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({'theme_mode': 'dark'});
+    final preferences = await SharedPreferences.getInstance();
+    const config = AppConfig(
+      baseUrl: 'https://example.test',
+      connectTimeout: Duration(seconds: 1),
+      receiveTimeout: Duration(seconds: 1),
+      enableNetworkLogs: false,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(preferences),
+          appConfigProvider.overrideWithValue(config),
+          tokenStorageProvider.overrideWithValue(_FakeTokenStorage()),
+        ],
+        child: const HrmsApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+    expect(scaffold.backgroundColor, AppColors.darkBg);
+    final inputs = tester.widgetList<EditableText>(find.byType(EditableText));
+    expect(inputs, hasLength(2));
+    for (final input in inputs) {
+      expect(input.style.color, AppColors.darkText);
+    }
   });
 }
 
