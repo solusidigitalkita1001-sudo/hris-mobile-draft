@@ -1,71 +1,59 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:hrm_app/core/theme/app_theme.dart';
 import 'package:hrm_app/core/widgets/common.dart';
-import 'package:hrm_app/features/calendar/calendar_providers.dart';
-import 'package:hrm_app/features/calendar/domain/entities/calendar_data.dart';
 
-class CalendarScreen extends ConsumerStatefulWidget {
+class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
 
   @override
-  ConsumerState<CalendarScreen> createState() => _CalendarScreenState();
+  State<CalendarScreen> createState() => _CalendarScreenState();
 }
 
-class _CalendarScreenState extends ConsumerState<CalendarScreen> {
-  int _selectedDay = 20;
-  int _displayMonth = 6;
-  int _displayYear = 2025;
+class _CalendarScreenState extends State<CalendarScreen> {
+  late DateTime _displayed = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+  );
+  late int _selectedDay = DateTime.now().day;
 
-  Map<int, List<_CalEvent>> get _events => ref
-      .watch(calendarControllerProvider)
-      .eventsByDay
-      .map(
-        (day, events) => MapEntry(
-          day,
-          events
-              .map((event) => _CalEvent(event.label, _eventColor(event.tone)))
-              .toList(),
-        ),
-      );
+  static const _monthNames = [
+    '',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
 
-  Color _eventColor(CalendarEventTone tone) => switch (tone) {
-    CalendarEventTone.danger => AppColors.danger,
-    CalendarEventTone.primary => AppColors.primary,
-    CalendarEventTone.purple => AppColors.purple,
-    CalendarEventTone.success => AppColors.success,
-    CalendarEventTone.warning => AppColors.warning,
-    CalendarEventTone.info => AppColors.info,
-  };
+  int get _daysInMonth =>
+      DateTime(_displayed.year, _displayed.month + 1, 0).day;
 
-  String get _monthName {
-    const names = [
-      '',
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return names[_displayMonth];
+  int get _firstWeekday =>
+      DateTime(_displayed.year, _displayed.month, 1).weekday % 7;
+
+  void _showToday() {
+    final today = DateTime.now();
+    setState(() {
+      _displayed = DateTime(today.year, today.month);
+      _selectedDay = today.day;
+    });
   }
 
-  int get _daysInMonth {
-    return DateTime(_displayYear, _displayMonth + 1, 0).day;
-  }
-
-  int get _firstWeekday {
-    // 0=Mon in Dart; we want 0=Sun
-    final wd = DateTime(_displayYear, _displayMonth, 1).weekday;
-    return wd % 7;
+  void _moveMonth(int offset) {
+    final next = DateTime(_displayed.year, _displayed.month + offset);
+    final lastDay = DateTime(next.year, next.month + 1, 0).day;
+    setState(() {
+      _displayed = next;
+      _selectedDay = _selectedDay.clamp(1, lastDay);
+    });
   }
 
   @override
@@ -73,14 +61,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textPrimary = isDark ? AppColors.darkText : AppColors.lightText;
     final textSub = isDark ? AppColors.darkTextSub : AppColors.lightTextSub;
-    final bgColor = isDark ? AppColors.darkBg : AppColors.lightBg;
-    final cardColor = isDark ? AppColors.darkCard : AppColors.lightSurface;
-    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
-
-    final selectedEvents = _events[_selectedDay] ?? [];
+    final surface = isDark ? AppColors.darkSurface : AppColors.lightSurface;
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
       appBar: AppBar(
         title: Text(
           'Calendar',
@@ -90,85 +74,61 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             color: textPrimary,
           ),
         ),
-        backgroundColor: isDark
-            ? AppColors.darkSurface
-            : AppColors.lightSurface,
+        backgroundColor: surface,
         actions: [
-          TextButton(
-            onPressed: () => setState(() {
-              _selectedDay = 20;
-              _displayMonth = 6;
-              _displayYear = 2025;
-            }),
-            child: const Text(
-              'Today',
-              style: TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
+          TextButton(onPressed: _showToday, child: const Text('Today')),
         ],
       ),
-      body: Column(
+      body: ListView(
         children: [
-          // Calendar header
           Container(
-            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            color: surface,
+            padding: EdgeInsets.fromLTRB(
+              MediaQuery.sizeOf(context).width < 360 ? 6 : 20,
+              16,
+              MediaQuery.sizeOf(context).width < 360 ? 6 : 20,
+              20,
+            ),
             child: Column(
               children: [
-                // Month navigation
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      onPressed: () => setState(() {
-                        if (_displayMonth == 1) {
-                          _displayMonth = 12;
-                          _displayYear--;
-                        } else {
-                          _displayMonth--;
-                        }
-                      }),
+                      tooltip: 'Bulan sebelumnya',
+                      onPressed: () => _moveMonth(-1),
                       icon: Icon(Icons.chevron_left, color: textSub),
                     ),
-                    Text(
-                      '$_monthName $_displayYear',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: textPrimary,
+                    Expanded(
+                      child: Text(
+                        '${_monthNames[_displayed.month]} ${_displayed.year}',
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: textPrimary,
+                        ),
                       ),
                     ),
                     IconButton(
-                      onPressed: () => setState(() {
-                        if (_displayMonth == 12) {
-                          _displayMonth = 1;
-                          _displayYear++;
-                        } else {
-                          _displayMonth++;
-                        }
-                      }),
+                      tooltip: 'Bulan berikutnya',
+                      onPressed: () => _moveMonth(1),
                       icon: Icon(Icons.chevron_right, color: textSub),
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 8),
-
-                // Day-of-week headers
                 Row(
                   children: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
                       .map(
-                        (d) => Expanded(
+                        (day) => Expanded(
                           child: Center(
                             child: Text(
-                              d,
+                              day,
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
-                                letterSpacing: 0.3,
                                 color: textSub,
                               ),
                             ),
@@ -177,190 +137,18 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       )
                       .toList(),
                 ),
-
                 const SizedBox(height: 8),
-
-                // Calendar grid
-                _buildGrid(isDark, textPrimary, textSub, borderColor),
+                _buildGrid(isDark, textPrimary),
               ],
             ),
           ),
-
-          // Legend
-          Container(
-            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-            child: Row(
-              children: [
-                _LegendDot(color: AppColors.danger, label: 'Holiday'),
-                const SizedBox(width: 16),
-                _LegendDot(color: AppColors.primary, label: 'Leave'),
-                const SizedBox(width: 16),
-                _LegendDot(color: AppColors.success, label: 'Event'),
-                const SizedBox(width: 16),
-                _LegendDot(color: AppColors.warning, label: 'Review'),
-              ],
-            ),
-          ),
-
-          const Divider(height: 1),
-
-          // Events list
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                Text(
-                  selectedEvents.isEmpty
-                      ? 'No events on ${_monthName.substring(0, 3)} $_selectedDay'
-                      : '${_monthName.substring(0, 3)} $_selectedDay — ${selectedEvents.length} event${selectedEvents.length > 1 ? "s" : ""}',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: textSub,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (selectedEvents.isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 32),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.event_available_rounded,
-                            size: 44,
-                            color: textSub.withValues(alpha: 0.3),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Clear day',
-                            style: TextStyle(
-                              color: textSub.withValues(alpha: 0.6),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                else
-                  ...selectedEvents.map(
-                    (e) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: cardColor,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: borderColor),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 4,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: e.color,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                e.label,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: textPrimary,
-                                ),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: e.color.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                Icons.chevron_right,
-                                size: 16,
-                                color: e.color,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                const SizedBox(height: 16),
-                SectionHeader(
-                  title: 'Upcoming',
-                  actionLabel: 'All',
-                  onAction: () {},
-                ),
-                const SizedBox(height: 12),
-                ...([
-                  (25, 'Payroll Disbursement', AppColors.success),
-                  (27, 'Q2 Performance Review', AppColors.warning),
-                  (30, 'Month-End HR Reports Due', AppColors.info),
-                ].map(
-                  (ev) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: AppCard(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: ev.$3.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  '${ev.$1}',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w800,
-                                    color: ev.$3,
-                                  ),
-                                ),
-                                Text(
-                                  'Jun',
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w600,
-                                    color: ev.$3,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              ev.$2,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: textPrimary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                )),
-              ],
+          const Padding(
+            padding: EdgeInsets.all(20),
+            child: UnavailableFeatureCard(
+              title: 'Event kalender belum tersedia',
+              message:
+                  'Hari libur, jadwal kerja, cuti, dan agenda akan ditampilkan setelah integrasi kalender server selesai.',
+              icon: Icons.event_busy_outlined,
             ),
           ),
         ],
@@ -368,76 +156,66 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _buildGrid(
-    bool isDark,
-    Color textPrimary,
-    Color textSub,
-    Color borderColor,
-  ) {
+  Widget _buildGrid(bool isDark, Color textPrimary) {
     final totalCells = _firstWeekday + _daysInMonth;
     final rows = (totalCells / 7).ceil();
+    final today = DateTime.now();
 
     return Column(
       children: List.generate(rows, (row) {
         return Row(
-          children: List.generate(7, (col) {
-            final cellIndex = row * 7 + col;
-            final day = cellIndex - _firstWeekday + 1;
-            final isValid = day >= 1 && day <= _daysInMonth;
-            final isSelected = isValid && day == _selectedDay;
-            final isToday = isValid && day == 20 && _displayMonth == 6;
-            final isWeekend = col == 0 || col == 6;
-            final hasEvents = isValid && _events.containsKey(day);
-
+          children: List.generate(7, (column) {
+            final day = row * 7 + column - _firstWeekday + 1;
+            final valid = day >= 1 && day <= _daysInMonth;
+            final selected = valid && day == _selectedDay;
+            final isToday =
+                valid &&
+                day == today.day &&
+                _displayed.month == today.month &&
+                _displayed.year == today.year;
             return Expanded(
-              child: GestureDetector(
-                onTap: isValid
-                    ? () => setState(() => _selectedDay = day)
+              child: Semantics(
+                button: valid,
+                selected: selected,
+                label: valid
+                    ? '$day ${_monthNames[_displayed.month]} ${_displayed.year}'
                     : null,
-                child: Container(
-                  margin: const EdgeInsets.all(2),
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primary
-                        : isToday
-                        ? AppColors.primary.withValues(alpha: 0.12)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (isValid)
-                        Text(
-                          '$day',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: isSelected || isToday
-                                ? FontWeight.w700
-                                : FontWeight.w400,
-                            color: isSelected
-                                ? Colors.white
-                                : isWeekend
-                                ? (isDark
-                                      ? AppColors.darkTextSub
-                                      : AppColors.lightTextSub)
-                                : textPrimary,
-                          ),
-                        ),
-                      if (isValid && hasEvents)
-                        Container(
-                          margin: const EdgeInsets.only(top: 2),
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? Colors.white
-                                : _events[day]!.first.color,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                    ],
+                child: InkWell(
+                  key: valid ? ValueKey('calendar-day-$day') : null,
+                  onTap: valid
+                      ? () => setState(() => _selectedDay = day)
+                      : null,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    height: 44,
+                    margin: const EdgeInsets.all(2),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? AppColors.primary
+                          : isToday
+                          ? AppColors.primary.withValues(alpha: 0.12)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: valid
+                        ? Text(
+                            '$day',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: selected || isToday
+                                  ? FontWeight.w700
+                                  : FontWeight.w400,
+                              color: selected
+                                  ? Colors.white
+                                  : column == 0 || column == 6
+                                  ? (isDark
+                                        ? AppColors.darkTextSub
+                                        : AppColors.lightTextSub)
+                                  : textPrimary,
+                            ),
+                          )
+                        : null,
                   ),
                 ),
               ),
@@ -445,41 +223,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           }),
         );
       }),
-    );
-  }
-}
-
-class _CalEvent {
-  final String label;
-  final Color color;
-  const _CalEvent(this.label, this.color);
-}
-
-class _LegendDot extends StatelessWidget {
-  final Color color;
-  final String label;
-  const _LegendDot({required this.color, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 5),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
-          ),
-        ),
-      ],
     );
   }
 }

@@ -6,6 +6,15 @@ abstract interface class RequestLocalDataSource {
   Future<EmployeeRequest> insert(SubmitRequestCommand command);
 }
 
+class UnavailableRequestLocalDataSource implements RequestLocalDataSource {
+  @override
+  List<EmployeeRequest> readAll() => const [];
+
+  @override
+  Future<EmployeeRequest> insert(SubmitRequestCommand command) =>
+      Future.error(UnsupportedError('Pengajuan belum terhubung ke server.'));
+}
+
 class DemoRequestLocalDataSource implements RequestLocalDataSource {
   final List<EmployeeRequest> _items = [
     const EmployeeRequest(

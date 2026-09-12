@@ -4,6 +4,23 @@ abstract interface class ProfileLocalDataSource {
   Employee readCurrentEmployee();
 }
 
+class EmptyProfileLocalDataSource implements ProfileLocalDataSource {
+  @override
+  Employee readCurrentEmployee() => const Employee(
+    id: '',
+    name: 'User',
+    role: '',
+    department: '',
+    email: '',
+    phone: '',
+    location: '',
+    joinDate: '',
+    salary: 0,
+    initials: 'U',
+    avatarColorIndex: 0,
+  );
+}
+
 class DemoProfileLocalDataSource implements ProfileLocalDataSource {
   @override
   Employee readCurrentEmployee() => const Employee(

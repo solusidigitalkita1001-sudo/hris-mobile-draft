@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hrm_app/app/providers/theme_controller.dart';
 import 'package:hrm_app/core/config/app_config.dart';
 import 'package:hrm_app/core/network/dio_client.dart';
 import 'package:hrm_app/core/storage/preferences.dart';
+import 'package:hrm_app/core/security/session_lifecycle.dart';
 import 'package:hrm_app/core/theme/app_theme.dart';
 import 'package:hrm_app/features/attendance/presentation/screens/attendance_screen.dart';
 import 'package:hrm_app/features/authentication/authentication_providers.dart';
 import 'package:hrm_app/features/authentication/presentation/screens/login_screen.dart';
+import 'package:hrm_app/features/authentication/presentation/screens/change_password_screen.dart';
+import 'package:hrm_app/features/authentication/presentation/screens/employee_access_unavailable_screen.dart';
 import 'package:hrm_app/features/calendar/presentation/screens/calendar_screen.dart';
 import 'package:hrm_app/features/dashboard/presentation/screens/home_screen.dart';
 import 'package:hrm_app/features/profile/presentation/screens/profile_screen.dart';
@@ -23,13 +24,6 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  if (!kIsWeb) {
-    try {
-      await dotenv.load(fileName: '.env', isOptional: true);
-    } on Object {
-      // An empty development .env must not prevent the UI from starting.
-    }
-  }
   final preferences = await SharedPreferences.getInstance();
   final config = AppConfig.fromEnvironment();
   runApp(
@@ -49,13 +43,15 @@ class HrmsApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeControllerProvider);
+    final featureSession = ref.watch(featureSessionProvider);
     return MaterialApp(
+      key: ObjectKey(featureSession),
       title: 'HRMS',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeMode,
-      home: _AuthGate(
+      home: AuthGate(
         themeMode: themeMode,
         onThemeToggle: () =>
             ref.read(themeControllerProvider.notifier).toggle(),
@@ -64,8 +60,12 @@ class HrmsApp extends ConsumerWidget {
   }
 }
 
-class _AuthGate extends ConsumerWidget {
-  const _AuthGate({required this.themeMode, required this.onThemeToggle});
+class AuthGate extends ConsumerWidget {
+  const AuthGate({
+    super.key,
+    required this.themeMode,
+    required this.onThemeToggle,
+  });
 
   final ThemeMode themeMode;
   final VoidCallback onThemeToggle;
@@ -73,15 +73,24 @@ class _AuthGate extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authControllerProvider);
+    final featureSession = ref.watch(featureSessionProvider);
     return auth.when(
-      data: (session) => session == null
-          ? const LoginScreen()
-          : MainShell(
-              themeMode: themeMode,
-              onThemeToggle: onThemeToggle,
-              onSignOut: () =>
-                  ref.read(authControllerProvider.notifier).logout(),
-            ),
+      skipLoadingOnRefresh: false,
+      data: (session) => switch (session) {
+        null => const LoginScreen(),
+        _ when session.mustChangePassword => ChangePasswordScreen(
+          onSignOut: () => ref.read(authControllerProvider.notifier).logout(),
+        ),
+        _ when !session.hasEmployeeAccess => EmployeeAccessUnavailableScreen(
+          onSignOut: () => ref.read(authControllerProvider.notifier).logout(),
+        ),
+        _ => MainShell(
+          key: ObjectKey(featureSession),
+          themeMode: themeMode,
+          onThemeToggle: onThemeToggle,
+          onSignOut: () => ref.read(authControllerProvider.notifier).logout(),
+        ),
+      },
       loading: () => const Scaffold(
         backgroundColor: Color(0xFFF8FAFC),
         body: Center(child: CircularProgressIndicator()),
@@ -142,7 +151,7 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final screens = [
-      const HomeScreen(),
+      HomeScreen(onOpenAttendance: () => setState(() => _currentIndex = 1)),
       const AttendanceScreen(),
       const RequestsScreen(),
       const CalendarScreen(),
@@ -174,7 +183,9 @@ class _MainShellState extends State<MainShell> {
           indicatorColor: AppColors.primary.withValues(alpha: 0.12),
           shadowColor: Colors.transparent,
           elevation: 0,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          labelBehavior: MediaQuery.sizeOf(context).width < 360
+              ? NavigationDestinationLabelBehavior.alwaysHide
+              : NavigationDestinationLabelBehavior.alwaysShow,
           destinations: _navItems
               .map(
                 (item) => NavigationDestination(

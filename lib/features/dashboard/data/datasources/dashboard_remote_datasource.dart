@@ -55,6 +55,10 @@ class DioDashboardRemoteDataSource implements DashboardRemoteDataSource {
       announcements: notifications,
       attendance: attendance,
       monthlySummary: _summary(responses[1], balances, attendance),
+      leaveBalancesAvailable: responses[0] != null,
+      monthlySummaryAvailable: responses[1] != null,
+      attendanceAvailable: responses[2] != null,
+      announcementsAvailable: responses[3] != null,
     );
   }
 

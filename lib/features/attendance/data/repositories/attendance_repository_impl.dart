@@ -5,6 +5,7 @@ import 'package:hrm_app/core/network/api_error_mapper.dart';
 import 'package:hrm_app/features/attendance/data/datasources/attendance_remote_datasource.dart';
 import 'package:hrm_app/features/attendance/data/dto/attendance_dto.dart';
 import 'package:hrm_app/features/attendance/domain/entities/attendance_command.dart';
+import 'package:hrm_app/features/attendance/domain/entities/attendance_context.dart';
 import 'package:hrm_app/features/attendance/domain/entities/attendance_entity.dart';
 import 'package:hrm_app/features/attendance/domain/repositories/attendance_repository.dart';
 
@@ -14,6 +15,19 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
 
   @override
   Future<Result<AttendanceEntity>> getToday() => _guard(_remote.getToday);
+
+  @override
+  Future<Result<AttendanceContext>> getContext() async {
+    try {
+      return Success(await _remote.getContext());
+    } on ApiException catch (error) {
+      return FailureResult(mapApiException(error));
+    } catch (_) {
+      return const FailureResult(
+        ServerFailure('Unexpected attendance context error'),
+      );
+    }
+  }
 
   @override
   Future<Result<AttendanceEntity>> clockIn(AttendanceCommand command) =>

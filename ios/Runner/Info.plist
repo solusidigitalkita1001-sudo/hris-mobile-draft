@@ -26,19 +26,12 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>srv540825.hstgr.cloud</key>
-			<dict>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-				<key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-			</dict>
-		</dict>
-	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Kamera digunakan untuk mengambil selfie verifikasi saat mencatat absensi.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Lokasi digunakan saat aplikasi terbuka untuk memverifikasi area absensi.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Galeri hanya diakses bila Anda memilih foto pendukung untuk layanan karyawan.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

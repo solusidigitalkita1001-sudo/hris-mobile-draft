@@ -9,5 +9,10 @@ class Login {
   Future<Result<AuthSession>> call({
     required String email,
     required String password,
-  }) => _repository.login(email: email.trim(), password: password);
+    String? totp,
+  }) => _repository.login(
+    email: email.trim(),
+    password: password,
+    totp: totp?.trim(),
+  );
 }

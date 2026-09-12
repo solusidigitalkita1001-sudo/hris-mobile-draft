@@ -1,9 +1,14 @@
+import 'package:hrm_app/core/security/cookie_session.dart';
 import 'package:hrm_app/features/authentication/domain/entities/auth_session.dart';
 
 class AuthSessionDto {
   const AuthSessionDto({
-    required this.accessToken,
+    this.accessToken,
     this.refreshToken,
+    this.authCookie,
+    this.authSetCookies = const [],
+    this.csrfToken,
+    this.usesCookieAuth = false,
     this.expiresIn,
     this.userId,
     this.employeeId,
@@ -12,15 +17,34 @@ class AuthSessionDto {
     this.groupId,
     this.roles = const [],
     this.permissions = const [],
+    this.hasGlobalRole = false,
+    this.maxRolePriority = 0,
     this.mustChangePassword = false,
     this.userName,
     this.email,
   });
 
-  factory AuthSessionDto.fromLoginJson(Map<String, dynamic> json) {
+  factory AuthSessionDto.fromLoginJson(
+    Map<String, dynamic> json, {
+    String? authCookie,
+    List<String> authSetCookies = const [],
+    bool assumeBrowserCookieAuth = false,
+  }) {
     final tokens = json['tokens'] as Map<String, dynamic>? ?? const {};
     final user = json['user'] as Map<String, dynamic>? ?? const {};
-    return AuthSessionDto._fromParts(tokens: tokens, user: user);
+    if (_asId(user['id']) == null) {
+      throw const FormatException('User ID is missing');
+    }
+    return AuthSessionDto._fromParts(
+      tokens: tokens,
+      user: user,
+      authCookie: authCookie,
+      authSetCookies: authSetCookies,
+      csrfToken:
+          cookieValue(authCookie, 'csrf') ?? json['csrfToken'] as String?,
+      usesCookieAuth:
+          assumeBrowserCookieAuth || cookieValue(authCookie, 'at') != null,
+    );
   }
 
   factory AuthSessionDto.fromStoredJson(Map<String, dynamic> json) =>
@@ -29,14 +53,28 @@ class AuthSessionDto {
   factory AuthSessionDto._fromParts({
     required Map<String, dynamic> tokens,
     required Map<String, dynamic> user,
+    String? authCookie,
+    List<String> authSetCookies = const [],
+    String? csrfToken,
+    bool? usesCookieAuth,
   }) {
     final accessToken = tokens['accessToken'] as String?;
-    if (accessToken == null || accessToken.isEmpty) {
-      throw const FormatException('Access token is missing');
+    final cookieAuth = usesCookieAuth ?? tokens['usesCookieAuth'] == true;
+    if ((accessToken == null || accessToken.isEmpty) && !cookieAuth) {
+      throw const FormatException('Authentication credentials are missing');
+    }
+    if (cookieAuth &&
+        authCookie != null &&
+        (csrfToken == null || csrfToken.isEmpty)) {
+      throw const FormatException('CSRF token is missing');
     }
     return AuthSessionDto(
       accessToken: accessToken,
       refreshToken: tokens['refreshToken'] as String?,
+      authCookie: authCookie,
+      authSetCookies: authSetCookies,
+      csrfToken: csrfToken,
+      usesCookieAuth: cookieAuth,
       expiresIn: _asInt(tokens['expiresIn']),
       userId: _asId(user['id'] ?? user['userId']),
       employeeId: _asId(user['employeeId']),
@@ -45,14 +83,20 @@ class AuthSessionDto {
       groupId: _asId(user['groupId']),
       roles: _asStringList(user['roles']),
       permissions: _asStringList(user['permissions']),
+      hasGlobalRole: user['hasGlobalRole'] as bool? ?? false,
+      maxRolePriority: _asInt(user['maxRolePriority']) ?? 0,
       mustChangePassword: user['mustChangePassword'] as bool? ?? false,
       userName: _userName(user),
       email: user['email'] as String?,
     );
   }
 
-  final String accessToken;
+  final String? accessToken;
   final String? refreshToken;
+  final String? authCookie;
+  final List<String> authSetCookies;
+  final String? csrfToken;
+  final bool usesCookieAuth;
   final int? expiresIn;
   final String? userId;
   final String? employeeId;
@@ -61,6 +105,8 @@ class AuthSessionDto {
   final String? groupId;
   final List<String> roles;
   final List<String> permissions;
+  final bool hasGlobalRole;
+  final int maxRolePriority;
   final bool mustChangePassword;
   final String? userName;
   final String? email;
@@ -76,14 +122,17 @@ class AuthSessionDto {
     groupId: groupId,
     roles: roles,
     permissions: permissions,
+    hasGlobalRole: hasGlobalRole,
+    maxRolePriority: maxRolePriority,
     mustChangePassword: mustChangePassword,
     userName: userName,
     email: email,
   );
 
   Map<String, dynamic> toStoredJson() => {
-    'accessToken': accessToken,
+    if (accessToken != null) 'accessToken': accessToken,
     if (refreshToken != null) 'refreshToken': refreshToken,
+    if (usesCookieAuth) 'usesCookieAuth': true,
     if (expiresIn != null) 'expiresIn': expiresIn,
     if (userId != null) 'id': userId,
     if (employeeId != null) 'employeeId': employeeId,
@@ -92,6 +141,8 @@ class AuthSessionDto {
     if (groupId != null) 'groupId': groupId,
     'roles': roles,
     'permissions': permissions,
+    'hasGlobalRole': hasGlobalRole,
+    'maxRolePriority': maxRolePriority,
     'mustChangePassword': mustChangePassword,
     if (userName != null) 'name': userName,
     if (email != null) 'email': email,
@@ -100,13 +151,14 @@ class AuthSessionDto {
   AuthSessionDto mergeUser(Map<String, dynamic> user) =>
       AuthSessionDto._fromParts(
         tokens: toStoredJson(),
-        user: {...toStoredJson(), ...user},
+        user: user,
+        usesCookieAuth: usesCookieAuth,
       );
 }
 
 String? _asId(Object? value) {
-  if (value is String) return value;
-  if (value is Map) return value['id'] as String?;
+  if (value is String && value.trim().isNotEmpty) return value;
+  if (value is Map) return _asId(value['id']);
   return null;
 }
 

@@ -5,6 +5,10 @@ class DashboardSnapshot {
     required this.announcements,
     this.attendance = const DashboardAttendance(),
     this.monthlySummary = const MonthlySummary(),
+    this.attendanceAvailable = false,
+    this.leaveBalancesAvailable = false,
+    this.monthlySummaryAvailable = false,
+    this.announcementsAvailable = false,
   });
 
   final DashboardEmployee employee;
@@ -12,6 +16,10 @@ class DashboardSnapshot {
   final List<Announcement> announcements;
   final DashboardAttendance attendance;
   final MonthlySummary monthlySummary;
+  final bool attendanceAvailable;
+  final bool leaveBalancesAvailable;
+  final bool monthlySummaryAvailable;
+  final bool announcementsAvailable;
 }
 
 class DashboardAttendance {

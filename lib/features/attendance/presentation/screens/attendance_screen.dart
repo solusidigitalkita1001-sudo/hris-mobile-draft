@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:hrm_app/core/errors/failure.dart';
+import 'package:hrm_app/core/security/session_lifecycle.dart';
+import 'package:hrm_app/core/services/location_gateway.dart';
+import 'package:hrm_app/core/services/location_service.dart';
+import 'package:hrm_app/core/services/selfie_gateway.dart';
+import 'package:hrm_app/core/services/selfie_service.dart';
 import 'package:hrm_app/core/theme/app_theme.dart';
 import 'package:hrm_app/core/widgets/common.dart';
+import 'package:hrm_app/features/attendance/attendance_dependencies.dart';
 import 'package:hrm_app/features/attendance/attendance_providers.dart';
-import 'package:hrm_app/features/attendance/presentation/models/attendance_history_item.dart';
+import 'package:hrm_app/features/attendance/domain/entities/attendance_context.dart';
+import 'package:hrm_app/features/attendance/domain/entities/attendance_entity.dart';
 
 class AttendanceScreen extends ConsumerStatefulWidget {
   const AttendanceScreen({super.key});
@@ -13,738 +20,496 @@ class AttendanceScreen extends ConsumerStatefulWidget {
   ConsumerState<AttendanceScreen> createState() => _AttendanceScreenState();
 }
 
-class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
-    with SingleTickerProviderStateMixin {
-  bool _selfieVerified = true;
-  final bool _gpsVerified = true;
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
+  CapturedSelfie? _selfie;
+  String? _captureError;
+  bool _capturing = false;
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(attendanceControllerProvider, (previous, next) {
-      if (next.hasError && previous?.error != next.error) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(next.error.toString())));
-      }
-    });
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textPrimary = isDark ? AppColors.darkText : AppColors.lightText;
-    final textSub = isDark ? AppColors.darkTextSub : AppColors.lightTextSub;
-    final bgColor = isDark ? AppColors.darkBg : AppColors.lightBg;
-    final cardColor = isDark ? AppColors.darkCard : AppColors.lightSurface;
-    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final session = ref.watch(featureSessionProvider);
+    final attendance = ref.watch(attendanceControllerProvider(session));
+    final attendanceContext = ref.watch(attendanceContextProvider(session));
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
-        title: Text(
-          'Attendance',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-            color: textPrimary,
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
+        appBar: AppBar(
+          title: const Text(
+            'Absensi',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
           ),
-        ),
-        backgroundColor: isDark
-            ? AppColors.darkSurface
-            : AppColors.lightSurface,
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: textSub,
-          indicatorColor: AppColors.primary,
-          indicatorWeight: 2,
-          labelStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-          ),
-          tabs: const [
-            Tab(text: 'Check In/Out'),
-            Tab(text: 'History'),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildCheckIn(isDark, textPrimary, textSub, cardColor, borderColor),
-          _buildHistory(isDark, textPrimary, textSub, cardColor, borderColor),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCheckIn(
-    bool isDark,
-    Color textPrimary,
-    Color textSub,
-    Color cardColor,
-    Color borderColor,
-  ) {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        // GPS map-like visual
-        Container(
-          height: 180,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            color: isDark ? const Color(0xFF1A2744) : const Color(0xFFEFF6FF),
-            border: Border.all(color: borderColor),
-          ),
-          child: Stack(
-            children: [
-              // Grid pattern suggesting a map
-              CustomPaint(
-                size: const Size(double.infinity, 180),
-                painter: _MapGridPainter(isDark: isDark),
-              ),
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.35),
-                            blurRadius: 16,
-                            spreadRadius: 4,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.location_on,
-                        color: Colors.white,
-                        size: 26,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkCard : Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.08),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        'Menara ACME, Jl. Sudirman 42',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: textPrimary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                top: 12,
-                right: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.success,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.gps_fixed, color: Colors.white, size: 12),
-                      SizedBox(width: 4),
-                      Text(
-                        'GPS Active',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+          backgroundColor: isDark
+              ? AppColors.darkSurface
+              : AppColors.lightSurface,
+          bottom: const TabBar(
+            indicatorWeight: 2,
+            tabs: [
+              Tab(text: 'Hari ini'),
+              Tab(text: 'Riwayat'),
             ],
           ),
         ),
-
-        const SizedBox(height: 20),
-
-        // Verification status
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: borderColor),
-          ),
-          child: Column(
-            children: [
-              _VerificationRow(
-                icon: Icons.location_on_rounded,
-                label: 'GPS Location',
-                sub: 'Within office radius (50m)',
-                verified: _gpsVerified,
-                isDark: isDark,
-              ),
-              Divider(height: 24, color: borderColor),
-              _VerificationRow(
-                icon: Icons.face_retouching_natural,
-                label: 'Face Recognition',
-                sub: _selfieVerified ? 'Identity confirmed' : 'Tap to verify',
-                verified: _selfieVerified,
-                isDark: isDark,
-                onTap: () => setState(() => _selfieVerified = !_selfieVerified),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 20),
-
-        // Today's summary
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: borderColor),
-          ),
-          child: Row(
-            children: [
-              _TodayStat(
-                label: 'Clock In',
-                value: '08:02',
-                color: AppColors.success,
-                isDark: isDark,
-              ),
-              Container(width: 1, height: 40, color: borderColor),
-              _TodayStat(
-                label: 'Duration',
-                value: '8h 34m',
-                color: AppColors.primary,
-                isDark: isDark,
-              ),
-              Container(width: 1, height: 40, color: borderColor),
-              _TodayStat(
-                label: 'Status',
-                value: 'On Time',
-                color: AppColors.success,
-                isDark: isDark,
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 24),
-
-        // Clock button
-        GestureDetector(
-          onTap: _toggleAttendance,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            decoration: BoxDecoration(
-              color: _clockedIn ? AppColors.danger : AppColors.success,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: (_clockedIn ? AppColors.danger : AppColors.success)
-                      .withValues(alpha: 0.35),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  _clockedIn ? Icons.logout_rounded : Icons.login_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _clockedIn ? 'Clock Out' : 'Clock In',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        Center(
-          child: Text(
-            'Friday, 20 June 2025 · 16:36 WIB',
-            style: TextStyle(fontSize: 12, color: textSub),
-          ),
-        ),
-
-        const SizedBox(height: 24),
-      ],
-    );
-  }
-
-  Future<void> _toggleAttendance() async {
-    await ref.read(attendanceControllerProvider.notifier).toggleAttendance();
-  }
-
-  bool get _clockedIn =>
-      ref.watch(attendanceControllerProvider).valueOrNull?.isActive ?? true;
-
-  Widget _buildHistory(
-    bool isDark,
-    Color textPrimary,
-    Color textSub,
-    Color cardColor,
-    Color borderColor,
-  ) {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        // Week strip
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: AttendanceHistoryData.thisWeek.map((r) {
-            final isToday = r.day == 'Fri';
-            return _DayStrip(
-              day: r.day,
-              date: r.date.split(' ').last,
-              status: r.status,
-              isToday: isToday,
-              isDark: isDark,
-            );
-          }).toList(),
-        ),
-
-        const SizedBox(height: 24),
-
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        body: TabBarView(
           children: [
-            Text(
-              'This Week',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: textPrimary,
-              ),
+            RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(attendanceContextProvider(session));
+                ref.invalidate(attendanceControllerProvider(session));
+                await Future.wait([
+                  ref.read(attendanceContextProvider(session).future),
+                  ref.read(attendanceControllerProvider(session).future),
+                ]);
+              },
+              child: _today(context, session, attendance, attendanceContext),
             ),
-            Text(
-              'Jun 16 – Jun 20',
-              style: TextStyle(fontSize: 12, color: textSub),
-            ),
+            const _HistoryUnavailable(),
           ],
         ),
+      ),
+    );
+  }
 
-        const SizedBox(height: 14),
+  Widget _today(
+    BuildContext context,
+    FeatureSession session,
+    AsyncValue<AttendanceEntity> attendance,
+    AsyncValue<AttendanceContext> contextState,
+  ) {
+    final record = attendance.valueOrNull;
+    final policy = contextState.valueOrNull;
+    final error = attendance.hasError ? attendance.error : contextState.error;
+    final isBusy = attendance.isLoading || contextState.isLoading;
+    final needsSelfie =
+        record?.isActive == false && policy?.requiresSelfie == true;
+    final canSubmit =
+        !isBusy &&
+        record != null &&
+        policy != null &&
+        (!needsSelfie || _selfie != null) &&
+        _supportsAction(record, policy);
 
-        Container(
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: borderColor),
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(20),
+      children: [
+        if (policy != null) _PolicyCard(value: policy),
+        if (policy != null) const SizedBox(height: 20),
+        const SectionHeader(title: 'Catatan hari ini'),
+        const SizedBox(height: 12),
+        if (record != null)
+          AppCard(child: _AttendanceRecord(record: record))
+        else if (isBusy)
+          const _LoadingCard(message: 'Memuat data absensi...'),
+        if (needsSelfie) ...[
+          const SizedBox(height: 20),
+          _SelfieCard(
+            selfie: _selfie,
+            error: _captureError,
+            isCapturing: _capturing,
+            onCapture: _captureSelfie,
           ),
-          child: Column(
-            children: AttendanceHistoryData.thisWeek.asMap().entries.map((
-              entry,
-            ) {
-              final i = entry.key;
-              final r = entry.value;
-              final isLast = i == AttendanceHistoryData.thisWeek.length - 1;
-              return Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: _statusColor(
-                              r.status,
-                            ).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(
-                            _statusIcon(r.status),
-                            size: 18,
-                            color: _statusColor(r.status),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${r.day}, ${r.date}',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                r.clockIn == '—'
-                                    ? 'No record'
-                                    : '${r.clockIn} → ${r.clockOut}  ·  ${r.hours}',
-                                style: TextStyle(fontSize: 12, color: textSub),
-                              ),
-                            ],
-                          ),
-                        ),
-                        _attendanceBadge(r.status),
-                      ],
-                    ),
-                  ),
-                  if (!isLast) Divider(height: 1, color: borderColor),
-                ],
-              );
-            }).toList(),
+        ],
+        if (error != null) ...[
+          const SizedBox(height: 20),
+          _AttendanceError(
+            error: error,
+            onRetry: () {
+              ref.invalidate(attendanceContextProvider(session));
+              ref.invalidate(attendanceControllerProvider(session));
+            },
+            onOpenSettings: _openSettings(error),
           ),
-        ),
-
+        ],
         const SizedBox(height: 20),
-
-        OutlinedButton.icon(
-          onPressed: () {},
-          icon: const Icon(Icons.calendar_month_rounded, size: 18),
-          label: const Text('View Monthly Report'),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton.icon(
+            onPressed: canSubmit
+                ? () => _submit(session, record, needsSelfie)
+                : null,
+            icon: isBusy
+                ? const SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Icon(
+                    record?.isActive == true
+                        ? Icons.logout_rounded
+                        : Icons.login_rounded,
+                  ),
+            label: Text(
+              isBusy
+                  ? 'Memproses...'
+                  : record?.isActive == true
+                  ? 'Catat pulang'
+                  : 'Catat masuk',
             ),
           ),
         ),
-
-        const SizedBox(height: 24),
+        if (policy != null && !_supportsAction(record, policy)) ...[
+          const SizedBox(height: 10),
+          Text(
+            record?.isActive == true
+                ? 'Metode GPS seluler tidak diizinkan untuk absensi ini.'
+                : 'Kebijakan perusahaan tidak menyediakan metode absensi yang didukung aplikasi.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
       ],
     );
   }
 
-  Color _statusColor(AttendanceHistoryStatus s) {
-    switch (s) {
-      case AttendanceHistoryStatus.onTime:
-        return AppColors.success;
-      case AttendanceHistoryStatus.late:
-        return AppColors.warning;
-      case AttendanceHistoryStatus.absent:
-        return AppColors.danger;
-      case AttendanceHistoryStatus.leave:
-        return AppColors.info;
+  bool _supportsAction(AttendanceEntity? record, AttendanceContext policy) {
+    if (record?.isActive == true) return policy.supportsMobileGps;
+    if (policy.requiresSelfie) return policy.supportsFaceRecognition;
+    return policy.supportsMobileGps;
+  }
+
+  Future<void> _captureSelfie() async {
+    setState(() {
+      _capturing = true;
+      _captureError = null;
+    });
+    try {
+      final capture = await ref.read(selfieServiceProvider).capture();
+      if (!mounted) return;
+      setState(() {
+        if (capture != null) _selfie = capture;
+      });
+    } on SelfieException catch (error) {
+      if (mounted) setState(() => _captureError = error.message);
+    } finally {
+      if (mounted) setState(() => _capturing = false);
     }
   }
 
-  IconData _statusIcon(AttendanceHistoryStatus s) {
-    switch (s) {
-      case AttendanceHistoryStatus.onTime:
-        return Icons.check_circle_rounded;
-      case AttendanceHistoryStatus.late:
-        return Icons.access_time_rounded;
-      case AttendanceHistoryStatus.absent:
-        return Icons.cancel_rounded;
-      case AttendanceHistoryStatus.leave:
-        return Icons.beach_access_rounded;
-    }
+  Future<void> _submit(
+    FeatureSession session,
+    AttendanceEntity record,
+    bool needsSelfie,
+  ) async {
+    final success = await ref
+        .read(attendanceControllerProvider(session).notifier)
+        .toggleAttendance(selfie: needsSelfie ? _selfie : null);
+    if (!mounted || !success) return;
+    setState(() {
+      _selfie = null;
+      _captureError = null;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          record.isActive
+              ? 'Waktu pulang tercatat di server.'
+              : 'Waktu masuk tercatat di server.',
+        ),
+      ),
+    );
   }
 
-  StatusBadge _attendanceBadge(AttendanceHistoryStatus status) =>
-      switch (status) {
-        AttendanceHistoryStatus.onTime => const StatusBadge(
-          label: 'On Time',
-          backgroundColor: Color(0xffDCFCE7),
-          textColor: Color(0xff166534),
-        ),
-        AttendanceHistoryStatus.late => const StatusBadge(
-          label: 'Late',
-          backgroundColor: Color(0xffFEF3C7),
-          textColor: Color(0xff92400E),
-        ),
-        AttendanceHistoryStatus.leave => const StatusBadge(
-          label: 'Leave',
-          backgroundColor: Color(0xffDBEAFE),
-          textColor: Color(0xff1E40AF),
-        ),
-        AttendanceHistoryStatus.absent => const StatusBadge(
-          label: 'Absent',
-          backgroundColor: Color(0xffFEE2E2),
-          textColor: Color(0xff991B1B),
-        ),
-      };
+  VoidCallback? _openSettings(Object error) {
+    if (error is! LocationException) return null;
+    return switch (error.kind) {
+      LocationIssueKind.permissionDeniedForever => () {
+        ref.read(locationServiceProvider).openAppSettings();
+      },
+      LocationIssueKind.serviceDisabled => () {
+        ref.read(locationServiceProvider).openLocationSettings();
+      },
+      _ => null,
+    };
+  }
 }
 
-// ─── Sub-widgets ──────────────────────────────────────────────────────────────
+class _PolicyCard extends StatelessWidget {
+  const _PolicyCard({required this.value});
 
-class _VerificationRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String sub;
-  final bool verified;
-  final bool isDark;
-  final VoidCallback? onTap;
-
-  const _VerificationRow({
-    required this.icon,
-    required this.label,
-    required this.sub,
-    required this.verified,
-    required this.isDark,
-    this.onTap,
-  });
+  final AttendanceContext value;
 
   @override
   Widget build(BuildContext context) {
-    final textPrimary = isDark ? AppColors.darkText : AppColors.lightText;
-    final textSub = isDark ? AppColors.darkTextSub : AppColors.lightTextSub;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(
+    final location = [
+      value.branchName,
+      value.branchCode,
+    ].whereType<String>().where((item) => item.isNotEmpty).join(' • ');
+    final schedule = [
+      value.workStart,
+      value.workEnd,
+    ].whereType<String>().where((item) => item.isNotEmpty).join(' - ');
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: verified
-                  ? AppColors.success.withValues(alpha: 0.1)
-                  : AppColors.danger.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+          const Row(
+            children: [
+              Icon(Icons.location_on_outlined, color: AppColors.primary),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Kebijakan absensi',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+          if (location.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(location),
+          ],
+          if (schedule.isNotEmpty) ...[
+            const SizedBox(height: 5),
+            Text('Jadwal $schedule'),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            value.requiresSelfie
+                ? 'GPS dan selfie wajib dikirim untuk verifikasi server.'
+                : 'Lokasi GPS akan dikirim untuk verifikasi server.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          if (value.gpsRadiusMeters case final radius?) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Radius lokasi ${radius.round()} meter',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
-            child: Icon(
-              icon,
-              size: 18,
-              color: verified ? AppColors.success : AppColors.danger,
+          ],
+          for (final warning in value.warnings) ...[
+            const SizedBox(height: 8),
+            Text(warning, style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SelfieCard extends StatelessWidget {
+  const _SelfieCard({
+    required this.selfie,
+    required this.error,
+    required this.isCapturing,
+    required this.onCapture,
+  });
+
+  final CapturedSelfie? selfie;
+  final String? error;
+  final bool isCapturing;
+  final VoidCallback onCapture;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Selfie verifikasi',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 10),
+          if (selfie != null)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Semantics(
+                image: true,
+                label: 'Pratinjau selfie absensi',
+                child: Image.memory(
+                  selfie!.bytes,
+                  height: 180,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  gaplessPlayback: true,
+                ),
+              ),
+            )
+          else
+            Text(
+              'Ambil foto langsung dengan kamera depan. Foto hanya dikirim saat Anda mencatat masuk.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          if (error != null) ...[
+            const SizedBox(height: 10),
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                error!,
+                style: TextStyle(
+                  color: isDark
+                      ? const Color(0xFFFCA5A5)
+                      : const Color(0xFFB91C1C),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: isCapturing ? null : onCapture,
+              icon: const Icon(Icons.camera_alt_outlined),
+              label: Text(
+                isCapturing
+                    ? 'Membuka kamera...'
+                    : selfie == null
+                    ? 'Ambil selfie'
+                    : 'Ambil ulang',
+              ),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+    );
+  }
+}
+
+class _LoadingCard extends StatelessWidget {
+  const _LoadingCard({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const SizedBox.square(
+          dimension: 22,
+          child: CircularProgressIndicator(strokeWidth: 2.5),
+        ),
+        const SizedBox(width: 12),
+        Flexible(child: Text(message)),
+      ],
+    ),
+  );
+}
+
+class _AttendanceError extends StatelessWidget {
+  const _AttendanceError({
+    required this.error,
+    required this.onRetry,
+    this.onOpenSettings,
+  });
+
+  final Object error;
+  final VoidCallback onRetry;
+  final VoidCallback? onOpenSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    final message = switch (error) {
+      Failure(:final message) => message,
+      LocationException(:final message) => message,
+      _ => 'Absensi tidak dapat diproses. Periksa koneksi lalu coba lagi.',
+    };
+    return Semantics(
+      liveRegion: true,
+      child: AppCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Absensi belum tercatat',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            Text(message),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: textPrimary,
-                  ),
+                OutlinedButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Coba lagi'),
                 ),
-                Text(sub, style: TextStyle(fontSize: 11, color: textSub)),
+                if (onOpenSettings != null)
+                  OutlinedButton.icon(
+                    onPressed: onOpenSettings,
+                    icon: const Icon(Icons.settings_outlined),
+                    label: const Text('Buka pengaturan'),
+                  ),
               ],
             ),
-          ),
-          Icon(
-            verified ? Icons.verified_rounded : Icons.error_outline_rounded,
-            color: verified ? AppColors.success : AppColors.danger,
-            size: 20,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TodayStat extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-  final bool isDark;
-
-  const _TodayStat({
-    required this.label,
-    required this.value,
-    required this.color,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: isDark ? AppColors.darkTextSub : AppColors.lightTextSub,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DayStrip extends StatelessWidget {
-  final String day;
-  final String date;
-  final AttendanceHistoryStatus status;
-  final bool isToday;
-  final bool isDark;
-
-  const _DayStrip({
-    required this.day,
-    required this.date,
-    required this.status,
-    required this.isToday,
-    required this.isDark,
-  });
-
-  Color get _statusColor {
-    switch (status) {
-      case AttendanceHistoryStatus.onTime:
-        return AppColors.success;
-      case AttendanceHistoryStatus.late:
-        return AppColors.warning;
-      case AttendanceHistoryStatus.absent:
-        return AppColors.danger;
-      case AttendanceHistoryStatus.leave:
-        return AppColors.info;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 56,
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        color: isToday
-            ? AppColors.primary
-            : (isDark ? AppColors.darkCard : AppColors.lightSurface),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isToday
-              ? AppColors.primary
-              : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+          ],
         ),
       ),
-      child: Column(
-        children: [
-          Text(
-            day,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: isToday
-                  ? Colors.white.withValues(alpha: 0.8)
-                  : (isDark ? AppColors.darkTextSub : AppColors.lightTextSub),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            date,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: isToday
-                  ? Colors.white
-                  : (isDark ? AppColors.darkText : AppColors.lightText),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: isToday ? Colors.white : _statusColor,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
 
-// Simple map grid painter
-class _MapGridPainter extends CustomPainter {
-  final bool isDark;
-  _MapGridPainter({required this.isDark});
+class _AttendanceRecord extends StatelessWidget {
+  const _AttendanceRecord({required this.record});
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.04)
-      ..strokeWidth = 1;
-    const spacing = 30.0;
-    for (double x = 0; x < size.width; x += spacing) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += spacing) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-    // A few thicker "road" lines
-    final roadPaint = Paint()
-      ..color = (isDark ? Colors.white : AppColors.primary).withValues(
-        alpha: 0.08,
-      )
-      ..strokeWidth = 6;
-    canvas.drawLine(
-      Offset(size.width * 0.3, 0),
-      Offset(size.width * 0.3, size.height),
-      roadPaint,
-    );
-    canvas.drawLine(
-      Offset(0, size.height * 0.5),
-      Offset(size.width, size.height * 0.5),
-      roadPaint,
-    );
+  final AttendanceEntity record;
+
+  String _time(DateTime? value) {
+    if (value == null) return 'Belum tercatat';
+    final local = value.toLocal();
+    return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
   }
 
   @override
-  bool shouldRepaint(_MapGridPainter old) => false;
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        children: [
+          Icon(
+            record.id.isEmpty
+                ? Icons.event_available_outlined
+                : Icons.verified_outlined,
+            color: AppColors.primary,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              record.id.isEmpty
+                  ? 'Belum ada catatan'
+                  : record.isActive
+                  ? 'Sedang bekerja'
+                  : 'Absensi selesai',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 14),
+      Text('Masuk: ${_time(record.checkedInAt)}'),
+      const SizedBox(height: 6),
+      Text('Pulang: ${_time(record.checkedOutAt)}'),
+      const SizedBox(height: 8),
+      Text(
+        'Status ini berasal dari server.',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+    ],
+  );
+}
+
+class _HistoryUnavailable extends StatelessWidget {
+  const _HistoryUnavailable();
+
+  @override
+  Widget build(BuildContext context) => ListView(
+    padding: const EdgeInsets.all(20),
+    children: const [
+      UnavailableFeatureCard(
+        title: 'Riwayat absensi belum tersedia',
+        message:
+            'Riwayat akan ditampilkan setelah endpoint dan filter periode selesai diintegrasikan.',
+        icon: Icons.history_rounded,
+      ),
+    ],
+  );
 }

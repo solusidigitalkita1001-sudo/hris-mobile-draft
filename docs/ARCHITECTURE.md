@@ -117,28 +117,33 @@ screen.
 
 ## Configuration and secrets
 
-Copy `.env.example` to `.env`. Values bundled in a mobile application are
-public and extractable. Only store values such as API base URL, timeout, and
-non-sensitive flags there. Never store API secrets, passwords, private keys,
-or permanent service credentials in the application bundle.
+Copy `.env.example` to `.env`, then pass it with
+`--dart-define-from-file=.env`. The file is not an application asset. Compile-
+time values are still public and extractable from an application binary, so the
+allowable keys are limited to environment, API base URL, timeouts, and the
+non-sensitive logging flag. Never store API secrets, passwords, private keys,
+tokens, cookies, or permanent service credentials in it.
 
-Flutter Web does not load `.env` at runtime. Supply the same public values with
-`--dart-define`; otherwise `AppConfig` uses its development defaults. This also
-avoids requests to the unsupported hidden asset path `/assets/.env`.
+Development may use the documented HTTP endpoint. Release and profile builds
+are treated as production: `BASE_URL` is mandatory, must use HTTPS, and network
+logging must be disabled. Invalid values fail startup with an `AppConfigException`
+that names the setting and correction.
 
 For local Web development, `tool/dev_cors_proxy.dart` provides a loopback-only
 proxy when the remote API does not allow localhost origins. Point `BASE_URL` to
 `http://localhost:8085/api/v1`. This proxy is never a production CORS solution;
 the deployed API or Nginx must allow the actual production frontend origin.
 
-Production tokens belong in Keychain/Keystore through `TokenStorage`. Logging
-must redact authorization headers, cookies, employee identity, payroll data,
-photos, and coordinates.
+Production tokens belong in Keychain/Keystore through `TokenStorage`. Optional
+debug network logs contain only a request sequence, HTTP method, status/error
+category, and duration. They never inspect the URL, headers, query, body,
+response payload, or exception message.
 
-The current reference server is exposed over plain HTTP. Android cleartext and
-an iOS domain-specific ATS exception are enabled only for
-`srv540825.hstgr.cloud`. Production must use HTTPS before release so credentials
-and tokens are never transmitted without TLS.
+Android permits cleartext only through the debug manifest. iOS uses a dedicated
+debug Info.plist for the domain-specific ATS exception; profile and release use
+the main plist without an exception. The current reference server remains an
+HTTP development dependency and must be replaced by an HTTPS endpoint for a
+production build.
 
 ## Adding a feature
 

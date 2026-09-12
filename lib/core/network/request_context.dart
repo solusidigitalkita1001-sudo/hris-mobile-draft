@@ -10,6 +10,8 @@ class RequestContext {
     this.email,
     this.roles = const [],
     this.permissions = const [],
+    this.hasGlobalRole = false,
+    this.maxRolePriority = 0,
   });
 
   final String? userId;
@@ -20,6 +22,8 @@ class RequestContext {
   final String? email;
   final List<String> roles;
   final List<String> permissions;
+  final bool hasGlobalRole;
+  final int maxRolePriority;
 
   RequestContext selectCompany(String companyId) {
     if (!companyScope.contains(companyId)) {
@@ -38,6 +42,8 @@ class RequestContext {
       email: email,
       roles: roles,
       permissions: permissions,
+      hasGlobalRole: hasGlobalRole,
+      maxRolePriority: maxRolePriority,
     );
   }
 }

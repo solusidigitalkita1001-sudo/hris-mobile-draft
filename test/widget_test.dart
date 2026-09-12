@@ -121,13 +121,19 @@ void _noop() {}
 class _FakeTokenStorage implements TokenStorage {
   String? accessToken;
   String? refreshToken;
+  String? cookieHeader;
+  String? csrfToken;
   Map<String, dynamic>? session;
+  Map<String, dynamic>? cookieState;
 
   @override
   Future<void> clear() async {
     accessToken = null;
     refreshToken = null;
+    cookieHeader = null;
+    csrfToken = null;
     session = null;
+    cookieState = null;
   }
 
   @override
@@ -135,6 +141,15 @@ class _FakeTokenStorage implements TokenStorage {
 
   @override
   Future<String?> readRefreshToken() async => refreshToken;
+
+  @override
+  Future<String?> readCookieHeader() async => cookieHeader;
+
+  @override
+  Future<String?> readCsrfToken() async => csrfToken;
+
+  @override
+  Future<Map<String, dynamic>?> readCookieState() async => cookieState;
 
   @override
   Future<Map<String, dynamic>?> readSession() async => session;
@@ -149,5 +164,25 @@ class _FakeTokenStorage implements TokenStorage {
   }) async {
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
+  }
+
+  @override
+  Future<void> saveCookieSession({
+    required String cookieHeader,
+    required String csrfToken,
+  }) async {
+    this.cookieHeader = cookieHeader;
+    this.csrfToken = csrfToken;
+  }
+
+  @override
+  Future<void> saveCookieState({
+    required Map<String, dynamic> state,
+    String? cookieHeader,
+    String? csrfToken,
+  }) async {
+    cookieState = state;
+    this.cookieHeader = cookieHeader;
+    this.csrfToken = csrfToken;
   }
 }

@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hrm_app/core/security/token_storage.dart';
+import 'package:hrm_app/features/authentication/authentication_providers.dart';
 
 enum SessionStatus { authenticated, unauthenticated }
 
@@ -10,15 +10,13 @@ final sessionProvider = AsyncNotifierProvider<SessionController, SessionStatus>(
 class SessionController extends AsyncNotifier<SessionStatus> {
   @override
   Future<SessionStatus> build() async {
-    final token = await ref.read(tokenStorageProvider).readAccessToken();
-    return token == null
+    final session = await ref.watch(authControllerProvider.future);
+    return session == null
         ? SessionStatus.unauthenticated
         : SessionStatus.authenticated;
   }
 
   Future<void> signOut() async {
-    state = const AsyncLoading();
-    await ref.read(tokenStorageProvider).clear();
-    state = const AsyncData(SessionStatus.unauthenticated);
+    await ref.read(authControllerProvider.notifier).logout();
   }
 }

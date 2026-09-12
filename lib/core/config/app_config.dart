@@ -1,6 +1,18 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart';
+
+enum AppEnvironment { development, production }
+
+class AppConfigException implements Exception {
+  const AppConfigException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'AppConfigException: $message';
+}
 
 class AppConfig {
+  static const _definedEnvironment = String.fromEnvironment('APP_ENV');
   static const _definedBaseUrl = String.fromEnvironment('BASE_URL');
   static const _definedConnectTimeout = String.fromEnvironment(
     'CONNECT_TIMEOUT_MS',
@@ -10,51 +22,147 @@ class AppConfig {
   );
   static const _definedLogging = String.fromEnvironment('ENABLE_LOGGING');
 
+  static const developmentBaseUrl = 'http://srv540825.hstgr.cloud:8084/api/v1';
+
   const AppConfig({
     required this.baseUrl,
     required this.connectTimeout,
     required this.receiveTimeout,
     required this.enableNetworkLogs,
+    this.environment = AppEnvironment.development,
   });
 
-  factory AppConfig.fromEnvironment() => AppConfig(
-    baseUrl:
-        _value(_definedBaseUrl, 'BASE_URL') ??
-        'http://srv540825.hstgr.cloud:8084/api/v1',
-    connectTimeout: Duration(
-      milliseconds:
-          int.tryParse(
-            _value(_definedConnectTimeout, 'CONNECT_TIMEOUT_MS') ?? '',
-          ) ??
-          15000,
-    ),
-    receiveTimeout: Duration(
-      milliseconds:
-          int.tryParse(
-            _value(_definedReceiveTimeout, 'RECEIVE_TIMEOUT_MS') ?? '',
-          ) ??
-          15000,
-    ),
-    enableNetworkLogs:
-        (_value(_definedLogging, 'ENABLE_LOGGING') ?? 'false').toLowerCase() ==
-        'true',
-  );
+  factory AppConfig.fromEnvironment({
+    Map<String, String> values = const {},
+    bool? productionBuild,
+  }) {
+    final isProductionBuild = productionBuild ?? (kReleaseMode || kProfileMode);
+    final configuredEnvironment = _value(
+      values,
+      'APP_ENV',
+      _definedEnvironment,
+    );
+    final environment = _parseEnvironment(
+      configuredEnvironment,
+      productionBuild: isProductionBuild,
+    );
+    final baseUrl =
+        _value(values, 'BASE_URL', _definedBaseUrl) ??
+        (environment == AppEnvironment.development ? developmentBaseUrl : null);
+    if (baseUrl == null) {
+      throw const AppConfigException(
+        'BASE_URL wajib diisi untuk build production. Gunakan URL HTTPS melalui '
+        '--dart-define atau --dart-define-from-file.',
+      );
+    }
+    _validateBaseUrl(baseUrl, environment: environment);
+
+    final enableNetworkLogs = _parseBool(
+      'ENABLE_LOGGING',
+      _value(values, 'ENABLE_LOGGING', _definedLogging) ?? 'false',
+    );
+    if (environment == AppEnvironment.production && enableNetworkLogs) {
+      throw const AppConfigException(
+        'ENABLE_LOGGING harus false pada environment production.',
+      );
+    }
+
+    return AppConfig(
+      baseUrl: baseUrl,
+      connectTimeout: Duration(
+        milliseconds: _parsePositiveMilliseconds(
+          'CONNECT_TIMEOUT_MS',
+          _value(values, 'CONNECT_TIMEOUT_MS', _definedConnectTimeout) ??
+              '15000',
+        ),
+      ),
+      receiveTimeout: Duration(
+        milliseconds: _parsePositiveMilliseconds(
+          'RECEIVE_TIMEOUT_MS',
+          _value(values, 'RECEIVE_TIMEOUT_MS', _definedReceiveTimeout) ??
+              '15000',
+        ),
+      ),
+      enableNetworkLogs: enableNetworkLogs,
+      environment: environment,
+    );
+  }
 
   final String baseUrl;
   final Duration connectTimeout;
   final Duration receiveTimeout;
   final bool enableNetworkLogs;
+  final AppEnvironment environment;
 }
 
-String? _value(String compileTimeValue, String dotenvKey) =>
-    compileTimeValue.isNotEmpty
-    ? compileTimeValue
-    : _environmentValue(dotenvKey);
+String? _value(
+  Map<String, String> values,
+  String key,
+  String compileTimeValue,
+) {
+  final value = values.containsKey(key) ? values[key] : compileTimeValue;
+  final normalized = value?.trim() ?? '';
+  return normalized.isEmpty ? null : normalized;
+}
 
-String? _environmentValue(String key) {
-  try {
-    return dotenv.maybeGet(key);
-  } on Object {
-    return null;
+AppEnvironment _parseEnvironment(
+  String? value, {
+  required bool productionBuild,
+}) {
+  final normalized = value?.toLowerCase();
+  if (productionBuild && normalized != null && normalized != 'production') {
+    throw const AppConfigException(
+      'Build release/profile tidak boleh memakai APP_ENV=development.',
+    );
   }
+  if (productionBuild || normalized == 'production') {
+    return AppEnvironment.production;
+  }
+  if (normalized == null || normalized == 'development') {
+    return AppEnvironment.development;
+  }
+  throw AppConfigException(
+    'APP_ENV "$value" tidak valid. Gunakan development atau production.',
+  );
+}
+
+void _validateBaseUrl(String value, {required AppEnvironment environment}) {
+  final uri = Uri.tryParse(value);
+  if (uri == null ||
+      !uri.hasScheme ||
+      !uri.hasAuthority ||
+      !const {'http', 'https'}.contains(uri.scheme) ||
+      uri.userInfo.isNotEmpty ||
+      uri.hasQuery ||
+      uri.hasFragment) {
+    throw const AppConfigException(
+      'BASE_URL harus berupa URL absolut HTTP(S) tanpa credential, query, atau '
+      'fragment, misalnya https://api.example.com/api/v1.',
+    );
+  }
+  if (environment == AppEnvironment.production && uri.scheme != 'https') {
+    throw const AppConfigException(
+      'BASE_URL production wajib memakai HTTPS; fallback HTTP hanya tersedia '
+      'untuk development.',
+    );
+  }
+}
+
+bool _parseBool(String key, String value) {
+  switch (value.toLowerCase()) {
+    case 'true':
+      return true;
+    case 'false':
+      return false;
+    default:
+      throw AppConfigException('$key harus bernilai true atau false.');
+  }
+}
+
+int _parsePositiveMilliseconds(String key, String value) {
+  final milliseconds = int.tryParse(value);
+  if (milliseconds == null || milliseconds <= 0) {
+    throw AppConfigException('$key harus berupa bilangan bulat positif.');
+  }
+  return milliseconds;
 }

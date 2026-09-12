@@ -14,12 +14,8 @@ class AttendanceDto {
   factory AttendanceDto.fromJson(Map<String, dynamic> json) => AttendanceDto(
     id: json['id'] as String? ?? '',
     employeeId: (json['employeeId'] ?? json['employee_id']) as String? ?? '',
-    checkedInAt: DateTime.parse(
-      (json['checkIn'] ??
-              json['checkedInAt'] ??
-              json['checked_in_at'] ??
-              json['date'])
-          as String,
+    checkedInAt: _date(
+      json['checkIn'] ?? json['checkedInAt'] ?? json['checked_in_at'],
     ),
     checkedOutAt:
         (json['checkOut'] ?? json['checkedOutAt'] ?? json['checked_out_at']) ==
@@ -30,13 +26,13 @@ class AttendanceDto {
                 as String,
           ),
     status: json['status'] as String? ?? 'PRESENT',
-    latitude: (json['latitude'] as num?)?.toDouble() ?? 0,
-    longitude: (json['longitude'] as num?)?.toDouble() ?? 0,
+    latitude: _number(json['checkInLatitude'] ?? json['latitude']),
+    longitude: _number(json['checkInLongitude'] ?? json['longitude']),
   );
 
   final String id;
   final String employeeId;
-  final DateTime checkedInAt;
+  final DateTime? checkedInAt;
   final DateTime? checkedOutAt;
   final String status;
   final double latitude;
@@ -53,6 +49,11 @@ class AttendanceDto {
   );
 }
 
+DateTime? _date(Object? value) =>
+    value is String ? DateTime.tryParse(value) : null;
+
+double _number(Object? value) => value is num ? value.toDouble() : 0;
+
 AttendanceStatus _parseStatus(String value) {
   final normalized = value.replaceAll('_', '').toLowerCase();
   if (normalized == 'present' || normalized == 'ontime') {
@@ -60,6 +61,8 @@ AttendanceStatus _parseStatus(String value) {
   }
   if (normalized == 'completed') return AttendanceStatus.completed;
   if (normalized == 'late') return AttendanceStatus.late;
+  if (normalized == 'absent') return AttendanceStatus.absent;
+  if (normalized == 'excused') return AttendanceStatus.excused;
   for (final status in AttendanceStatus.values) {
     if (status.name.toLowerCase() == normalized) return status;
   }

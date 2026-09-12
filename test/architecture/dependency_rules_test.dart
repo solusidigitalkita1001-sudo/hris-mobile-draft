@@ -66,6 +66,7 @@ void main() {
       'package:hrm_app/core/errors/result.dart',
       'package:hrm_app/core/errors/failure.dart',
       'package:hrm_app/core/services/location_gateway.dart',
+      'package:hrm_app/core/services/selfie_gateway.dart',
     };
     final coreImport = RegExp(r"import '([^']*package:hrm_app/core/[^']*)';");
     final violations = <String>[];

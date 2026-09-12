@@ -1,0 +1,78 @@
+{
+  "provenance": {
+    "kind": "synthetic-source-derived",
+    "backendCommit": "fa1d33cab5b39b2956c400cca046d73915933706",
+    "source": "backend/src/modules/auth/auth.service.ts:buildAuthContext",
+    "containsLiveCredentials": false
+  },
+  "users": {
+    "employee": {
+      "id": "user-employee-a",
+      "email": "employee-a@example.test",
+      "employeeId": "employee-a",
+      "name": "Employee Fixture A",
+      "roles": ["EMPLOYEE"],
+      "permissions": ["attendance:read", "attendance:create", "leave:read"],
+      "companyId": "company-a",
+      "companyScope": ["company-a"],
+      "groupId": "group-a",
+      "hasGlobalRole": false,
+      "maxRolePriority": 10,
+      "mustChangePassword": false
+    },
+    "manager": {
+      "id": "user-manager",
+      "email": "manager@example.test",
+      "employeeId": "employee-manager",
+      "name": "Manager Fixture",
+      "roles": ["MANAGER"],
+      "permissions": ["attendance:read", "leave:read", "leave:approve"],
+      "companyId": "company-a",
+      "companyScope": ["company-a", "company-b"],
+      "groupId": "group-a",
+      "hasGlobalRole": false,
+      "maxRolePriority": 20,
+      "mustChangePassword": true
+    },
+    "admin": {
+      "id": "user-admin",
+      "email": "admin@example.test",
+      "roles": ["SUPER_ADMIN"],
+      "permissions": ["user:read", "rbac:read"],
+      "companyScope": [],
+      "hasGlobalRole": true,
+      "maxRolePriority": 1,
+      "mustChangePassword": false
+    }
+  },
+  "loginHeaders": {
+    "set-cookie": [
+      "at=fixture-access; Max-Age=900; Path=/; HttpOnly; SameSite=Lax",
+      "rt=fixture-refresh; Max-Age=604800; Path=/api/v1/auth; HttpOnly; SameSite=Lax",
+      "csrf=fixture-nonce.fixture-signature; Path=/; SameSite=Lax"
+    ]
+  },
+  "refreshHeaders": {
+    "set-cookie": [
+      "at=fixture-access-next; Max-Age=900; Path=/; HttpOnly; SameSite=Lax",
+      "rt=fixture-refresh-next; Max-Age=604800; Path=/api/v1/auth; HttpOnly; SameSite=Lax",
+      "csrf=fixture-next.fixture-signature; Path=/; SameSite=Lax"
+    ]
+  },
+  "logoutHeaders": {
+    "set-cookie": [
+      "at=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax",
+      "rt=; Max-Age=0; Path=/api/v1/auth; HttpOnly; SameSite=Lax",
+      "csrf=; Max-Age=0; Path=/; SameSite=Lax"
+    ]
+  },
+  "errors": [
+    {"status": 401, "body": {"success": false, "code": "AUTHENTICATION_FAILED", "message": "Invalid email or password"}},
+    {"status": 401, "body": {"success": false, "code": "MFA_REQUIRED", "message": "MFA code required"}},
+    {"status": 403, "body": {"success": false, "code": "FORBIDDEN", "message": "Account is inactive. Contact your administrator."}},
+    {"status": 429, "body": {"success": false, "code": "TOO_MANY_REQUESTS", "message": "Too many authentication attempts. Please try again later."}},
+    {"status": 422, "body": {"success": false, "code": "VALIDATION_ERROR", "message": "Validation failed", "errors": [{"field": "email", "message": "Invalid email format"}]}},
+    {"status": 403, "body": {"success": false, "code": "FORBIDDEN", "message": "Invalid or missing CSRF token"}},
+    {"status": 401, "body": {"success": false, "code": "TOKEN_EXPIRED", "message": "Token has expired"}}
+  ]
+}

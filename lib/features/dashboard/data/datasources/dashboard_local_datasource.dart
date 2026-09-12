@@ -4,6 +4,19 @@ abstract interface class DashboardLocalDataSource {
   DashboardSnapshot read();
 }
 
+class EmptyDashboardLocalDataSource implements DashboardLocalDataSource {
+  @override
+  DashboardSnapshot read() => const DashboardSnapshot(
+    employee: DashboardEmployee(
+      name: 'User',
+      initials: 'U',
+      avatarColorIndex: 0,
+    ),
+    leaveBalances: [],
+    announcements: [],
+  );
+}
+
 class DemoDashboardLocalDataSource implements DashboardLocalDataSource {
   @override
   DashboardSnapshot read() => const DashboardSnapshot(
@@ -34,7 +47,7 @@ class DemoDashboardLocalDataSource implements DashboardLocalDataSource {
         category: 'Policy',
       ),
       Announcement(
-        title: 'June Payroll Disbursement — Jun 25',
+        title: 'June Payroll Disbursement: Jun 25',
         body:
             'June 2025 payroll will be processed and disbursed on Wednesday, June 25.',
         time: '2 days ago',

@@ -17,21 +17,34 @@ ApiException mapDioException(DioException error) {
   return ApiException(
     json['message'] as String? ?? _networkMessage(error.type),
     statusCode: error.response?.statusCode,
-    code: json['code'] as String?,
+    code:
+        json['code'] as String? ??
+        switch (error.type) {
+          DioExceptionType.connectionTimeout ||
+          DioExceptionType.sendTimeout ||
+          DioExceptionType.receiveTimeout ||
+          DioExceptionType.connectionError => 'NETWORK_ERROR',
+          _ => null,
+        },
     fieldErrors: errors,
   );
 }
 
 Failure mapApiException(ApiException error) => switch (error.code) {
+  'NETWORK_ERROR' => NetworkFailure(error.message),
   'AUTHENTICATION_FAILED' ||
-  'TOKEN_EXPIRED' => AuthenticationFailure(error.message),
+  'TOKEN_EXPIRED' ||
+  'MFA_REQUIRED' => AuthenticationFailure(error.message, code: error.code),
   'FORBIDDEN' => ForbiddenFailure(error.message),
   'VALIDATION_ERROR' => ValidationFailure(
     error.message,
     fieldErrors: error.fieldErrors,
   ),
   'TOO_MANY_REQUESTS' => RateLimitFailure(error.message),
-  _ when error.statusCode == 401 => AuthenticationFailure(error.message),
+  _ when error.statusCode == 401 => AuthenticationFailure(
+    error.message,
+    code: error.code,
+  ),
   _ when error.statusCode == 403 => ForbiddenFailure(error.message),
   _ when error.statusCode == 422 => ValidationFailure(
     error.message,

@@ -11,7 +11,7 @@ class AttendanceEntity {
 
   final String id;
   final String userId;
-  final DateTime checkedInAt;
+  final DateTime? checkedInAt;
   final DateTime? checkedOutAt;
   final AttendanceStatus status;
   final double latitude;
@@ -20,4 +20,4 @@ class AttendanceEntity {
   bool get isActive => id.isNotEmpty && checkedOutAt == null;
 }
 
-enum AttendanceStatus { notStarted, onTime, late, completed }
+enum AttendanceStatus { notStarted, onTime, late, completed, absent, excused }

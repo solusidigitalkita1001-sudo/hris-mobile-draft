@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hrm_app/core/errors/failure.dart';
 import 'package:hrm_app/core/theme/app_theme.dart';
 import 'package:hrm_app/features/authentication/authentication_providers.dart';
+import 'package:hrm_app/features/authentication/presentation/controllers/auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -17,13 +18,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _mfaController = TextEditingController();
   bool _obscurePassword = true;
   bool _isIndonesian = true;
+  bool _requiresMfa = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _mfaController.dispose();
     super.dispose();
   }
 
@@ -32,6 +36,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final pageBackground = isDark ? AppColors.darkBg : AppColors.lightBg;
     final auth = ref.watch(authControllerProvider);
+    final notice = ref.watch(authNoticeProvider);
     final isLoading = auth.isLoading;
     final error = auth.hasError
         ? auth.error is Failure
@@ -55,7 +60,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: _FormPanel(
                         maxWidth: 384,
                         languageToggle: _buildLanguageToggle(),
-                        form: _buildForm(isLoading, error),
+                        form: _buildForm(isLoading, error, notice),
                       ),
                     ),
                   ],
@@ -63,7 +68,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               : _FormPanel(
                   maxWidth: 440,
                   languageToggle: _buildLanguageToggle(),
-                  form: _buildForm(isLoading, error),
+                  form: _buildForm(isLoading, error, notice),
                 );
         },
       ),
@@ -99,7 +104,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _buildForm(bool isLoading, String? error) {
+  Widget _buildForm(bool isLoading, String? error, String? notice) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textPrimary = isDark ? AppColors.darkText : AppColors.lightText;
     final textSecondary = isDark
@@ -128,6 +133,45 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             style: TextStyle(color: textSecondary, fontSize: 14),
           ),
           const SizedBox(height: 34),
+          if (notice != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? const Color(0xFF052E2B)
+                    : const Color(0xFFECFDF5),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF0F766E)
+                      : const Color(0xFFA7F3D0),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.check_circle_outline,
+                    size: 18,
+                    color: Color(0xFF059669),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      notice,
+                      style: TextStyle(
+                        color: isDark
+                            ? const Color(0xFF6EE7B7)
+                            : const Color(0xFF065F46),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+          ],
           if (error != null) ...[
             Container(
               width: double.infinity,
@@ -189,6 +233,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ? _text('Email wajib diisi', 'Email is required')
                 : null,
           ),
+          if (_requiresMfa) ...[
+            const SizedBox(height: 22),
+            Text(
+              _text('Kode autentikator', 'Authenticator code'),
+              style: TextStyle(
+                color: textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _mfaController,
+              style: TextStyle(color: textPrimary, fontSize: 14),
+              cursorColor: isDark ? AppColors.primaryLight : AppColors.primary,
+              enabled: !isLoading,
+              keyboardType: TextInputType.text,
+              textInputAction: TextInputAction.done,
+              autofillHints: const [AutofillHints.oneTimeCode],
+              onFieldSubmitted: (_) => _submit(),
+              decoration: _inputDecoration(
+                _text(
+                  'Masukkan kode 6 digit atau recovery code',
+                  'Enter the 6-digit or recovery code',
+                ),
+              ),
+              validator: (value) {
+                final length = value?.trim().length ?? 0;
+                if (length < 6 || length > 20) {
+                  return _text(
+                    'Kode harus berisi 6 sampai 20 karakter',
+                    'Code must contain 6 to 20 characters',
+                  );
+                }
+                return null;
+              },
+            ),
+          ],
           const SizedBox(height: 22),
           Text(
             _text('Kata sandi', 'Password'),
@@ -234,7 +316,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
-            height: 42,
+            height: 48,
             child: ElevatedButton(
               onPressed: isLoading ? null : _submit,
               style: ElevatedButton.styleFrom(
@@ -293,15 +375,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     FocusManager.instance.primaryFocus?.unfocus();
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    ref
+    await ref
         .read(authControllerProvider.notifier)
         .login(
           email: _emailController.text,
           password: _passwordController.text,
+          totp: _requiresMfa ? _mfaController.text : null,
         );
+    if (!mounted) return;
+    final error = ref.read(authControllerProvider).error;
+    if (error is AuthenticationFailure && error.code == 'MFA_REQUIRED') {
+      setState(() => _requiresMfa = true);
+    }
   }
 
   String _text(String id, String en) => _isIndonesian ? id : en;
@@ -458,25 +546,30 @@ class _LanguageButton extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(5),
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: selected ? _LoginScreenState._blue : Colors.transparent,
-        borderRadius: BorderRadius.circular(5),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: selected
-              ? Colors.white
-              : Theme.of(context).brightness == Brightness.dark
-              ? AppColors.darkTextSub
-              : const Color(0xFF475569),
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(5),
+      child: Align(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: selected ? _LoginScreenState._blue : Colors.transparent,
+            borderRadius: BorderRadius.circular(5),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected
+                  ? Colors.white
+                  : Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.darkTextSub
+                  : const Color(0xFF475569),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ),
       ),
     ),

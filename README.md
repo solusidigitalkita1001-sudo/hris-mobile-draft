@@ -12,11 +12,14 @@ security guidance, testing requirements, and instructions for adding features.
 ```bash
 cp .env.example .env
 flutter pub get
-flutter run
+flutter run --dart-define-from-file=.env
 ```
 
-For Flutter Web, use compile-time configuration instead of loading the hidden
-`.env` asset:
+`.env` is read by the Flutter tool as compile-time public configuration and is
+not bundled as an application asset. Do not put tokens, passwords, API secrets,
+private keys, or service credentials in it.
+
+For Flutter Web development through the local CORS proxy:
 
 ```bash
 dart run tool/dev_cors_proxy.dart
@@ -26,6 +29,7 @@ Keep the proxy running, then use a second terminal:
 
 ```bash
 flutter run -d chrome \
+  --dart-define=APP_ENV=development \
   --dart-define=BASE_URL=http://localhost:8085/api/v1 \
   --dart-define=CONNECT_TIMEOUT_MS=15000 \
   --dart-define=RECEIVE_TIMEOUT_MS=15000 \
@@ -34,6 +38,16 @@ flutter run -d chrome \
 
 The proxy is localhost-only and intended only for development. Production must
 configure CORS on the API/reverse proxy for the deployed frontend origin.
+
+A release/profile build requires an explicit HTTPS endpoint and refuses network
+logging:
+
+```bash
+flutter build appbundle --release \
+  --dart-define=APP_ENV=production \
+  --dart-define=BASE_URL=https://api.example.com/api/v1 \
+  --dart-define=ENABLE_LOGGING=false
+```
 
 Quality checks:
 
@@ -46,8 +60,8 @@ Authentication and attendance use the configured HRMS API. Other modules keep
 replaceable local adapters until their response schemas are finalized.
 
 Authentication is connected to the HRMS reference API configured by
-`BASE_URL`. The current development host uses HTTP; migrate it to HTTPS before
-shipping a production build.
+`BASE_URL`. The repository's HTTP endpoint is a development-only fallback and
+cannot start a release/profile build.
 
 ## Flutter resources
 

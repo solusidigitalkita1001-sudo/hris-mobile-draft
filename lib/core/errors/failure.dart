@@ -18,7 +18,9 @@ class ServerFailure extends Failure {
 }
 
 class AuthenticationFailure extends Failure {
-  const AuthenticationFailure(super.message);
+  const AuthenticationFailure(super.message, {this.code});
+
+  final String? code;
 }
 
 class ForbiddenFailure extends Failure {

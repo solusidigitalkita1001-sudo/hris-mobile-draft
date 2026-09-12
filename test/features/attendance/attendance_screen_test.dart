@@ -1,0 +1,245 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:hrm_app/core/errors/failure.dart';
+import 'package:hrm_app/core/errors/result.dart';
+import 'package:hrm_app/core/network/request_context.dart';
+import 'package:hrm_app/core/services/location_gateway.dart';
+import 'package:hrm_app/core/services/location_service.dart';
+import 'package:hrm_app/core/services/selfie_gateway.dart';
+import 'package:hrm_app/core/services/selfie_service.dart';
+import 'package:hrm_app/features/attendance/attendance_dependencies.dart';
+import 'package:hrm_app/features/attendance/domain/entities/attendance_command.dart';
+import 'package:hrm_app/features/attendance/domain/entities/attendance_context.dart';
+import 'package:hrm_app/features/attendance/domain/entities/attendance_entity.dart';
+import 'package:hrm_app/features/attendance/domain/repositories/attendance_repository.dart';
+import 'package:hrm_app/features/attendance/presentation/screens/attendance_screen.dart';
+
+void main() {
+  testWidgets('GPS clock in shows success only after server result', (
+    tester,
+  ) async {
+    final repository = _Repository();
+    await _pump(tester, repository: repository);
+
+    await tester.tap(find.text('Catat masuk'));
+    await tester.pumpAndSettle();
+
+    expect(repository.clockInCalls, 1);
+    expect(repository.command?.latitude, -6.2088);
+    expect(repository.command?.method, AttendanceCaptureMethod.mobileGps);
+    expect(find.text('Sedang bekerja'), findsOneWidget);
+    expect(find.text('Waktu masuk tercatat di server.'), findsOneWidget);
+  });
+
+  testWidgets('server rejection stays failed and never shows success', (
+    tester,
+  ) async {
+    final repository = _Repository(failure: 'Di luar radius kantor.');
+    await _pump(tester, repository: repository);
+
+    await tester.tap(find.text('Catat masuk'));
+    await tester.pumpAndSettle();
+
+    expect(repository.clockInCalls, 1);
+    expect(find.text('Absensi belum tercatat'), findsOneWidget);
+    expect(find.text('Di luar radius kantor.'), findsOneWidget);
+    expect(find.text('Waktu masuk tercatat di server.'), findsNothing);
+    expect(find.text('Sedang bekerja'), findsNothing);
+  });
+
+  testWidgets('required selfie is captured before face attendance submission', (
+    tester,
+  ) async {
+    final repository = _Repository(requiresSelfie: true);
+    await _pump(
+      tester,
+      repository: repository,
+      selfie: _Selfie(
+        CapturedSelfie(
+          bytes: base64Decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+          ),
+          mimeType: 'image/png',
+          capturedAt: DateTime.utc(2026, 9, 12),
+        ),
+      ),
+    );
+
+    expect(repository.clockInCalls, 0);
+    await tester.tap(find.text('Ambil selfie'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Catat masuk'),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView).first,
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(find.text('Catat masuk'));
+    await tester.pumpAndSettle();
+
+    expect(repository.clockInCalls, 1);
+    expect(repository.command?.method, AttendanceCaptureMethod.faceRecognition);
+    expect(repository.command?.selfie?.mimeType, 'image/png');
+  });
+
+  testWidgets('permanent location denial offers app settings recovery', (
+    tester,
+  ) async {
+    final repository = _Repository();
+    final location = _DeniedLocation();
+    await _pump(tester, repository: repository, location: location);
+
+    await tester.tap(find.text('Catat masuk'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Absensi belum tercatat'), findsOneWidget);
+    expect(find.text('Buka pengaturan'), findsOneWidget);
+    await tester.tap(find.text('Buka pengaturan'));
+    expect(location.openedAppSettings, isTrue);
+    expect(repository.clockInCalls, 0);
+  });
+}
+
+Future<void> _pump(
+  WidgetTester tester, {
+  required _Repository repository,
+  SelfieGateway? selfie,
+  LocationGateway location = const _Location(),
+}) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        requestContextProvider.overrideWith(
+          (ref) => const RequestContext(
+            userId: 'user-1',
+            employeeId: 'employee-1',
+            activeCompanyId: 'company-1',
+            companyScope: ['company-1'],
+          ),
+        ),
+        attendanceRepositoryProvider.overrideWithValue(repository),
+        locationServiceProvider.overrideWithValue(location),
+        if (selfie != null) selfieServiceProvider.overrideWithValue(selfie),
+      ],
+      child: const MaterialApp(home: AttendanceScreen()),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+class _Location implements LocationGateway {
+  const _Location();
+
+  @override
+  Future<GeoCoordinate> currentPosition() async => GeoCoordinate(
+    -6.2088,
+    106.8456,
+    accuracyMeters: 8,
+    capturedAt: DateTime.utc(2026, 9, 12, 1),
+  );
+
+  @override
+  Future<bool> openAppSettings() async => true;
+
+  @override
+  Future<bool> openLocationSettings() async => true;
+}
+
+class _Selfie implements SelfieGateway {
+  const _Selfie(this.value);
+
+  final CapturedSelfie value;
+
+  @override
+  Future<CapturedSelfie?> capture() async => value;
+}
+
+class _DeniedLocation implements LocationGateway {
+  bool openedAppSettings = false;
+
+  @override
+  Future<GeoCoordinate> currentPosition() => throw const LocationException(
+    LocationIssueKind.permissionDeniedForever,
+    'Izin lokasi diblokir.',
+  );
+
+  @override
+  Future<bool> openAppSettings() async {
+    openedAppSettings = true;
+    return true;
+  }
+
+  @override
+  Future<bool> openLocationSettings() async => true;
+}
+
+class _Repository implements AttendanceRepository {
+  _Repository({this.failure, this.requiresSelfie = false});
+
+  final String? failure;
+  final bool requiresSelfie;
+  int clockInCalls = 0;
+  AttendanceCommand? command;
+
+  @override
+  Future<Result<AttendanceContext>> getContext() async => Success(
+    AttendanceContext(
+      employeeId: 'employee-1',
+      companyId: 'company-1',
+      branchName: 'Kantor Pusat',
+      allowedMethods: {
+        requiresSelfie
+            ? AttendanceCaptureMethod.faceRecognition
+            : AttendanceCaptureMethod.mobileGps,
+      },
+      requiresLocation: true,
+      requiresSelfie: requiresSelfie,
+      isWorkingDay: true,
+      allowHolidayAttendance: false,
+      allowWeekendAttendance: false,
+      warnings: const [],
+    ),
+  );
+
+  @override
+  Future<Result<AttendanceEntity>> getToday() async => const Success(
+    AttendanceEntity(
+      id: '',
+      userId: 'employee-1',
+      checkedInAt: null,
+      status: AttendanceStatus.notStarted,
+      latitude: 0,
+      longitude: 0,
+    ),
+  );
+
+  @override
+  Future<Result<AttendanceEntity>> clockIn(AttendanceCommand value) async {
+    clockInCalls++;
+    command = value;
+    if (failure case final message?) {
+      return FailureResult(ServerFailure(message, statusCode: 400));
+    }
+    return Success(
+      AttendanceEntity(
+        id: 'attendance-1',
+        userId: value.employeeId,
+        checkedInAt: value.capturedAt,
+        status: AttendanceStatus.onTime,
+        latitude: value.latitude,
+        longitude: value.longitude,
+      ),
+    );
+  }
+
+  @override
+  Future<Result<AttendanceEntity>> clockOut(AttendanceCommand command) =>
+      throw UnimplementedError();
+}
